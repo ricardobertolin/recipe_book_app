@@ -4,7 +4,7 @@
   "description": "A personal recipe book that works offline. Four looks, phone and desktop.",
   "start_url": "./?source=pwa",
   "scope": "./",
-  "id": "./",
+  "id": "/recipe_book_app/",
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui", "browser"],
   "orientation": "portrait-primary",

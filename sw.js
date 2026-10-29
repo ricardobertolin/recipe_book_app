@@ -9,7 +9,7 @@
  * on activate and clients are claimed immediately.
  */
 
-const CACHE_VERSION = 'v3';
+const CACHE_VERSION = 'v4';
 const SHELL_CACHE = `recipe-book-shell-${CACHE_VERSION}`;
 const FONT_CACHE = `recipe-book-fonts-${CACHE_VERSION}`;
 

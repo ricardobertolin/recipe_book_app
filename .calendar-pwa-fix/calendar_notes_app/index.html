@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Retro Notes</title>
+<meta name="description" content="A calendar and a notebook, filed on paper. Offline-first.">
+<meta name="color-scheme" content="light">
+
+<link rel="manifest" href="./manifest.webmanifest">
+<meta name="theme-color" content="#DADADA">
+
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Retro Notes">
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon-180.png">
+<link rel="icon" href="./icons/icon-192.png" sizes="192x192" type="image/png">
+
+<!-- iOS ignores the manifest for launch screens and matches an exact-size image
+     per device instead; without these it shows a blank white screen. -->
+<link rel="apple-touch-startup-image" href="./splash/splash-440x956@3x.png"
+      media="(device-width:440px) and (device-height:956px) and (-webkit-device-pixel-ratio:3) and (orientation:portrait)">
+<link rel="apple-touch-startup-image" href="./splash/splash-430x932@3x.png"
+      media="(device-width:430px) and (device-height:932px) and (-webkit-device-pixel-ratio:3) and (orientation:portrait)">
+<link rel="apple-touch-startup-image" href="./splash/splash-402x874@3x.png"
+      media="(device-width:402px) and (device-height:874px) and (-webkit-device-pixel-ratio:3) and (orientation:portrait)">
+<link rel="apple-touch-startup-image" href="./splash/splash-393x852@3x.png"
+      media="(device-width:393px) and (device-height:852px) and (-webkit-device-pixel-ratio:3) and (orientation:portrait)">
+<link rel="apple-touch-startup-image" href="./splash/splash-428x926@3x.png"
+      media="(device-width:428px) and (device-height:926px) and (-webkit-device-pixel-ratio:3) and (orientation:portrait)">
+<link rel="apple-touch-startup-image" href="./splash/splash-390x844@3x.png"
+      media="(device-width:390px) and (device-height:844px) and (-webkit-device-pixel-ratio:3) and (orientation:portrait)">
+<link rel="apple-touch-startup-image" href="./splash/splash-375x812@3x.png"
+      media="(device-width:375px) and (device-height:812px) and (-webkit-device-pixel-ratio:3) and (orientation:portrait)">
+<link rel="apple-touch-startup-image" href="./splash/splash-414x896@3x.png"
+      media="(device-width:414px) and (device-height:896px) and (-webkit-device-pixel-ratio:3) and (orientation:portrait)">
+<link rel="apple-touch-startup-image" href="./splash/splash-414x896@2x.png"
+      media="(device-width:414px) and (device-height:896px) and (-webkit-device-pixel-ratio:2) and (orientation:portrait)">
+<link rel="apple-touch-startup-image" href="./splash/splash-414x736@3x.png"
+      media="(device-width:414px) and (device-height:736px) and (-webkit-device-pixel-ratio:3) and (orientation:portrait)">
+<link rel="apple-touch-startup-image" href="./splash/splash-375x667@2x.png"
+      media="(device-width:375px) and (device-height:667px) and (-webkit-device-pixel-ratio:2) and (orientation:portrait)">
+
+<!-- Fonts are vendored, not loaded from a CDN: a font the service worker cannot
+     precache would be missing the first time the app opens offline. -->
+<link rel="preload" href="./fonts/v18-pxiKyp0ihIEF2isfFJU.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="./fonts/v20--F63fjptAgt5VM-kVkqdyU8n1i8q1w.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="./fonts.css">
+<link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+
+<div id="app" class="rn-app">
+  <div class="rn-phone">
+
+    <header class="rn-head">
+      <h1 class="rn-title"><span id="winTitle">CALENDAR</span><span class="rn-caret">_</span></h1>
+      <div class="rn-head-btns">
+        <button class="rn-btn rn-btn-sq" data-act="openSettings" aria-label="Settings">&#8801;</button>
+        <button class="rn-btn" data-act="goToday">TODAY</button>
+      </div>
+    </header>
+
+    <div class="rn-panel-wrap">
+      <div class="rn-panel">
+        <div class="rn-main rn-scroll" id="screen"></div>
+      </div>
+    </div>
+
+    <nav class="rn-tabs" id="tabs">
+      <button class="rn-tab" data-act="goCal" id="tabCal">
+        <span class="rn-ico-cal"></span>
+        <span>CALENDAR</span>
+      </button>
+      <button class="rn-tab" data-act="goNotes" id="tabNotes">
+        <span class="rn-ico-note"></span>
+        <span>NOTES</span>
+      </button>
+      <button class="rn-tab rn-tab-new" data-act="newBlank">
+        <span class="rn-ico-plus">+</span>
+        <span>NEW</span>
+      </button>
+    </nav>
+
+    <div class="rn-overlay" id="overlay" hidden data-act="closeDialog">
+      <div class="rn-dialog" data-act="stop" role="dialog" aria-modal="true" aria-label="Dialog">
+        <div class="rn-dialog-in" id="dialogBody"></div>
+      </div>
+    </div>
+
+    <p class="rn-sr" id="live" role="status" aria-live="polite"></p>
+
+    <!-- Lives outside the dialog so re-rendering the dialog cannot wipe it
+         while the OS file picker is open. -->
+    <input type="file" id="fileIn" accept="application/json,.json" hidden>
+
+  </div>
+</div>
+
+<script src="./app.js"></script>
+</body>
+</html>

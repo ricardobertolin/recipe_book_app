@@ -84,8 +84,10 @@ python -m http.server 8765
 # then http://localhost:8765
 ```
 
-For GitHub Pages, push the directory and point Pages at it. Every path in the app is
-relative, so it works from a project subpath without configuration.
+For GitHub Pages, push the directory and point Pages at it. Asset and navigation
+paths are relative, so it works from a project subpath. The manifest's stable app
+identity is explicitly `/recipe_book_app/`; use a different unique ID if you fork
+this into a separate app.
 
 ### Installing on a smartphone
 
@@ -98,12 +100,20 @@ the `localhost` exception only applies on the device running the browser.
 - **iPhone / iPad:** open the site in Safari, tap **Share → Add to Home Screen**,
   keep **Open as Web App** enabled if shown, and tap **Add**.
 
-Open it once online so the offline shell can finish caching. The app has its own
-manifest ID and service worker scope within this project's path. Cache cleanup
+Open it once online so the offline shell can finish caching. The app has an explicit
+manifest ID, `/recipe_book_app/`, and a service worker scoped to the project's path. Cache cleanup
 only removes Recipe Book caches, preserving other apps on the same Pages domain.
 
 These installation requirements follow the
 [MDN PWA installation guide](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Guides/Making_PWAs_installable).
+
+If Chrome on Android says the app is already installed before you have installed
+it, an app ID collision may be responsible. Manifest `id` is resolved against the
+**origin**, unlike `scope` and `start_url`: `"id": "./"` becomes the domain root
+even when the manifest is in a project folder. Other apps with that ID can be
+mistaken for Recipe Book. Keep the explicit ID above. After publishing this fix,
+open the site online, let the service worker update, then reload before installing.
+See [manifest ID resolution](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Manifest/Reference/id).
 
 ## Import and export
 
@@ -210,7 +220,7 @@ It drives headless Chrome through boot, navigation, cook mode, creating and edit
 recipe, groups, search, all four themes, both layouts, import and export in both modes,
 the print stylesheet, service worker registration and an offline reload. Set `BASE` or
 `CHROME_PATH` if your setup differs.
-It also checks Chrome's installability diagnostics, PNG dimensions, project scope,
+It also checks Chrome's computed app ID and installability diagnostics, PNG dimensions, project scope,
 cache isolation from sibling apps, and file-picker imports of the Portuguese collection.
 
 `tools/shot.mjs <url> <out.png> [w] [h] [js]` screenshots a single page and reports

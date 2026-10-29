@@ -393,6 +393,13 @@ await check('print styles open every panel', async () => {
 
 console.log('\npwa');
 await goto(`${BASE}/?layout=app`);
+await check('Chrome computes a Recipe Book ID distinct from the shared origin', async () => {
+  // Unlike scope/start_url, manifest id is resolved against the ORIGIN.
+  // Ask Chrome itself: resolving id against manifestURL hid a collision at '/'.
+  const { appId } = await send('Page.getAppId');
+  const expected = new URL('/recipe_book_app/', BASE).href;
+  return appId === expected || { actual: appId, expected };
+});
 await check('manifest is reachable', async () =>
   (await evaluate(`fetch('./manifest.webmanifest').then(r=>r.ok)`)) === true);
 await check('Chrome reports no installability errors', async () => {
@@ -425,7 +432,6 @@ await check('worker scope and manifest stay inside the project path', async () =
     const manifest = await (await fetch(manifestURL)).json();
     const expected = new URL('./', location.href).href;
     return reg.scope === expected && new URL(manifest.scope, manifestURL).href === expected &&
-      new URL(manifest.id, manifestURL).href === expected &&
       new URL(manifest.start_url, manifestURL).href.startsWith(expected);
   })()`));
 await check('activation keeps sibling app caches and removes obsolete recipe caches', async () =>
