@@ -62,11 +62,19 @@ export function settingsSheet(ctx, close) {
     layoutOpts));
 
   // Install
-  if (ctx.installPrompt) {
-    sheet.append(h('button', {
+  const standalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  if (!standalone) {
+    const install = h('div', { class: 'setting' },
+      h('span', { class: 'setting__label', text: 'Install on your phone' }));
+    if (ctx.installPrompt) install.append(h('button', {
       class: 'btn btn--primary btn--block', type: 'button',
       onclick: async () => { await ctx.install(); close(); }
     }, 'Install Recipe Book'));
+    install.append(h('p', { class: 'opt__hint', text:
+      'Android: open the browser menu and choose Install app or Add to Home screen. ' +
+      'iPhone / iPad: open in Safari, tap Share, then Add to Home Screen. ' +
+      'Keep Open as Web App enabled if shown, then tap Add.' }));
+    sheet.append(install);
   }
 
   // Data

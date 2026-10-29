@@ -65,9 +65,10 @@ const ctx = {
   setLayout: (id) => { delete OVERRIDE.layout; store.saveSettings({ layout: id }); },
   install: async () => {
     if (!ctx.installPrompt) return;
-    ctx.installPrompt.prompt();
-    await ctx.installPrompt.userChoice;
+    const prompt = ctx.installPrompt;
     ctx.installPrompt = null;
+    await prompt.prompt();
+    await prompt.userChoice;
   }
 };
 
@@ -283,6 +284,10 @@ window.addEventListener('resize', debounce(() => {
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
   ctx.installPrompt = e;
+});
+
+window.addEventListener('appinstalled', () => {
+  ctx.installPrompt = null;
 });
 
 history.replaceState({ depth: 0 }, '', location.hash || '#/');

@@ -87,6 +87,24 @@ python -m http.server 8765
 For GitHub Pages, push the directory and point Pages at it. Every path in the app is
 relative, so it works from a project subpath without configuration.
 
+### Installing on a smartphone
+
+Open the **HTTPS GitHub Pages URL** on the phone. A plain HTTP address on your
+computer's local network does not support PWA installation or service workers;
+the `localhost` exception only applies on the device running the browser.
+
+- **Android:** in Settings, tap **Install Recipe Book** when offered, or use the
+  browser menu's **Install app / Add to Home screen** action.
+- **iPhone / iPad:** open the site in Safari, tap **Share → Add to Home Screen**,
+  keep **Open as Web App** enabled if shown, and tap **Add**.
+
+Open it once online so the offline shell can finish caching. The app has its own
+manifest ID and service worker scope within this project's path. Cache cleanup
+only removes Recipe Book caches, preserving other apps on the same Pages domain.
+
+These installation requirements follow the
+[MDN PWA installation guide](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Guides/Making_PWAs_installable).
+
 ## Import and export
 
 Settings has an **Import / export** sheet for the whole book, and every recipe page has a
@@ -113,6 +131,19 @@ Import takes JSON and asks what to do with it:
 A malformed paste reports what is wrong and changes nothing.
 
 The serialization lives in `js/formats.js` and the merge in `store.merge()`.
+
+### Portuguese learning collection
+
+[`receitas-90.json`](./receitas-90.json) contains the supplied 90 recipe outlines
+in six categories, each with five Easy, five Medium and five Hard entries. Titles
+and technique notes remain in Portuguese. Ingredients, steps, time and servings
+are blank because the source list did not include them. Category descriptions are
+preserved in each relevant recipe's notes.
+
+To import: **Settings → Import / export → Choose a file → receitas-90.json**.
+Use **Merge** to keep existing recipes, or **Replace** to use only this collection.
+Repeated Merge imports skip unchanged entries. Regenerate the file with
+`node tools/make-learning-book.mjs` after editing the source list in that script.
 
 ## Data
 
@@ -172,10 +203,15 @@ With the server running on port 8765:
 node tools/smoke.mjs
 ```
 
+To verify the GitHub Pages project path locally, serve the parent directory and
+set `BASE=http://127.0.0.1:8765/recipe_book_app` before running the smoke test.
+
 It drives headless Chrome through boot, navigation, cook mode, creating and editing a
 recipe, groups, search, all four themes, both layouts, import and export in both modes,
 the print stylesheet, service worker registration and an offline reload. Set `BASE` or
 `CHROME_PATH` if your setup differs.
+It also checks Chrome's installability diagnostics, PNG dimensions, project scope,
+cache isolation from sibling apps, and file-picker imports of the Portuguese collection.
 
 `tools/shot.mjs <url> <out.png> [w] [h] [js]` screenshots a single page and reports
 console errors. `PRINT=1` renders it with print media emulated.

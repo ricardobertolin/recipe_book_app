@@ -9,6 +9,7 @@ import { spawn } from 'node:child_process';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const BASE = process.env.BASE || 'http://127.0.0.1:8765';
 const CHROME = process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe';
@@ -391,13 +392,74 @@ await check('print styles open every panel', async () => {
 });
 
 console.log('\npwa');
+await goto(`${BASE}/?layout=app`);
 await check('manifest is reachable', async () =>
   (await evaluate(`fetch('./manifest.webmanifest').then(r=>r.ok)`)) === true);
+await check('Chrome reports no installability errors', async () => {
+  const { installabilityErrors } = await send('Page.getInstallabilityErrors');
+  return installabilityErrors.length === 0 || installabilityErrors;
+});
+await check('manifest icons decode at their declared sizes', async () => {
+  return await evaluate(`(async () => {
+    const manifest = await (await fetch('./manifest.webmanifest')).json();
+    for (const icon of manifest.icons.filter(i => i.type === 'image/png')) {
+      const response = await fetch(icon.src);
+      if (!response.ok) return icon.src + ': HTTP ' + response.status;
+      const image = await createImageBitmap(await response.blob());
+      const size = image.width + 'x' + image.height;
+      image.close();
+      if (size !== icon.sizes) return icon.src + ': ' + size;
+    }
+    return true;
+  })()`);
+});
 await check('service worker registers', async () => {
   await goto(`${BASE}/`);
   await sleep(1200);
   return await evaluate("navigator.serviceWorker.getRegistration().then(r => !!r)");
 });
+await check('worker scope and manifest stay inside the project path', async () =>
+  await evaluate(`(async () => {
+    const reg = await navigator.serviceWorker.ready;
+    const manifestURL = document.querySelector('link[rel=manifest]').href;
+    const manifest = await (await fetch(manifestURL)).json();
+    const expected = new URL('./', location.href).href;
+    return reg.scope === expected && new URL(manifest.scope, manifestURL).href === expected &&
+      new URL(manifest.id, manifestURL).href === expected &&
+      new URL(manifest.start_url, manifestURL).href.startsWith(expected);
+  })()`));
+await check('activation keeps sibling app caches and removes obsolete recipe caches', async () =>
+  await evaluate(`(async () => {
+    const sibling = '__recipebook-smoke-sibling';
+    const obsolete = 'recipe-book-shell-smoke-obsolete';
+    try {
+      const cache = await caches.open(sibling);
+      await cache.put('./__sibling-test', new Response('other app offline data'));
+      await caches.open(obsolete);
+      // A distinct script URL forces a real update. Unregister/register with
+      // the same URL can reuse the active worker while this page controls it.
+      const reg = await navigator.serviceWorker.register('./sw.js?cache-isolation', {
+        scope: './', updateViaCache: 'none'
+      });
+      await new Promise((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error('activation timed out')), 10000);
+        const worker = reg.installing || reg.waiting || reg.active;
+        const check = () => {
+          if (worker.state === 'activated') { clearTimeout(timer); resolve(); }
+        };
+        worker.addEventListener('statechange', check);
+        check();
+      });
+      const keys = await caches.keys();
+      const saved = await (await caches.open(sibling)).match('./__sibling-test');
+      const preserved = keys.includes(sibling) && !!saved &&
+        await saved.text() === 'other app offline data';
+      return (preserved && !keys.includes(obsolete)) || { preserved, keys };
+    } finally {
+      await caches.delete(sibling);
+      await caches.delete(obsolete);
+    }
+  })()`));
 await check('shell is precached', async () => {
   await sleep(1500);
   return await evaluate("caches.keys().then(async ks => { const c = await caches.open(ks.find(k=>k.includes('shell'))); return (await c.keys()).length > 10; })");
@@ -405,13 +467,62 @@ await check('shell is precached', async () => {
 await check('export produces valid json', async () =>
   await evaluate("(() => { try { JSON.parse(JSON.stringify(JSON.parse(localStorage.getItem('recipebook.v2')))); return true; } catch { return false; } })()"));
 
+await check('settings explain Android and iPhone installation without a prompt', async () => {
+  await evaluate("document.querySelector('.iconbtn[title]').click()");
+  const text = await evaluate("document.querySelector('.sheet').textContent");
+  await evaluate("document.querySelector('.overlay').click()");
+  return text.includes('Android:') && text.includes('iPhone / iPad:') && text.includes('Add to Home Screen');
+});
+
+console.log('\nPortuguese recipe file');
+async function importLearningFile(mode = 'merge') {
+  await evaluate(openTransfer);
+  if (mode === 'replace') {
+    await evaluate("window.confirm = () => true; [...document.querySelectorAll('.sheet .opt')].find(o => o.textContent.includes('Replace')).click()");
+  }
+  const { root } = await send('DOM.getDocument');
+  const { nodeId } = await send('DOM.querySelector', { nodeId: root.nodeId, selector: '.sheet input[type=file]' });
+  await send('DOM.setFileInputFiles', {
+    nodeId, files: [fileURLToPath(new URL('../receitas-90.json', import.meta.url))]
+  });
+  await sleep(500);
+}
+await check('the actual JSON file merges all 90 entries through the file picker', async () => {
+  await importLearningFile();
+  return await evaluate(`(() => {
+    const data = JSON.parse(localStorage.getItem('recipebook.v2'));
+    return data.recipes.length === 91 && data.groups.length === 7 &&
+      data.recipes.some(r => r.title === 'Crème brûlée' && r.difficulty === 2) &&
+      data.recipes.some(r => r.title === 'Ovos mexidos cremosos' && r.difficulty === 0 &&
+        r.notes.includes('controlar o ponto dos ovos.'));
+  })()`);
+});
+await check('reimporting the Portuguese file creates no duplicates', async () => {
+  await importLearningFile();
+  return await evaluate(`(() => {
+    const data = JSON.parse(localStorage.getItem('recipebook.v2'));
+    return data.recipes.length === 91 && data.groups.length === 7;
+  })()`);
+});
+await check('Replace imports six chapters with five recipes per difficulty', async () => {
+  await importLearningFile('replace');
+  return await evaluate(`(() => {
+    const data = JSON.parse(localStorage.getItem('recipebook.v2'));
+    return data.recipes.length === 90 && data.groups.length === 6 && data.groups.every(g =>
+      [0, 1, 2].every(d => data.recipes.filter(r => r.groupId === g.id && r.difficulty === d).length === 5));
+  })()`);
+});
+
 await check('the app still loads with the network cut', async () => {
   await send('Network.enable');
   await send('Network.emulateNetworkConditions', {
     offline: true, latency: 0, downloadThroughput: 0, uploadThroughput: 0
   });
-  await goto(`${BASE}/`);
-  const ok = await evaluate("document.querySelectorAll('.rcard').length > 0");
+  await goto(`${BASE}/?source=pwa`);
+  const ok = await evaluate(`(() => {
+    const data = JSON.parse(localStorage.getItem('recipebook.v2'));
+    return document.querySelectorAll('.rcard').length > 0 && data.recipes.length === 90;
+  })()`);
   await send('Network.emulateNetworkConditions', {
     offline: false, latency: 0, downloadThroughput: -1, uploadThroughput: -1
   });

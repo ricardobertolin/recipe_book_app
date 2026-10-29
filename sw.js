@@ -9,7 +9,7 @@
  * on activate and clients are claimed immediately.
  */
 
-const CACHE_VERSION = 'v2';
+const CACHE_VERSION = 'v3';
 const SHELL_CACHE = `recipe-book-shell-${CACHE_VERSION}`;
 const FONT_CACHE = `recipe-book-fonts-${CACHE_VERSION}`;
 
@@ -39,6 +39,8 @@ const SHELL = [
   './icons/icon.svg',
   './icons/icon-192.png',
   './icons/icon-512.png',
+  './icons/maskable-192.png',
+  './icons/maskable-512.png',
   './icons/favicon.png',
   './icons/apple-touch-icon.png'
 ];
@@ -60,7 +62,10 @@ self.addEventListener('activate', (event) => {
   event.waitUntil((async () => {
     const keep = new Set([SHELL_CACHE, FONT_CACHE]);
     for (const key of await caches.keys()) {
-      if (!keep.has(key)) await caches.delete(key);
+      // GitHub Pages projects share an origin and CacheStorage. Leave the
+      // offline data belonging to the other installed apps alone.
+      const ours = key.startsWith('recipe-book-shell-') || key.startsWith('recipe-book-fonts-');
+      if (ours && !keep.has(key)) await caches.delete(key);
     }
     await self.clients.claim();
   })());
@@ -86,7 +91,8 @@ self.addEventListener('fetch', (event) => {
   // Navigations always resolve to the shell: the router lives in the hash.
   if (request.mode === 'navigate') {
     event.respondWith((async () => {
-      const cached = await caches.match('./index.html', { ignoreSearch: true });
+      const cache = await caches.open(SHELL_CACHE);
+      const cached = await cache.match('./index.html', { ignoreSearch: true });
       if (cached) {
         refresh(request, SHELL_CACHE);
         return cached;
@@ -105,7 +111,8 @@ self.addEventListener('fetch', (event) => {
 });
 
 async function cacheFirst(request, cacheName) {
-  const cached = await caches.match(request, { ignoreSearch: true });
+  const cache = await caches.open(cacheName);
+  const cached = await cache.match(request, { ignoreSearch: true });
   if (cached) {
     refresh(request, cacheName);
     return cached;
