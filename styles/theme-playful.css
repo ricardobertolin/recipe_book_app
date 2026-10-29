@@ -1,0 +1,76 @@
+/* ───────────────────────────────────────────────────────────────
+   Theme 1 — "Playful"  (from Recipe Book.dc.html)
+   Soft cream paper, rounded corners, hard offset shadows,
+   Fredoka headlines over Nunito. Coral is the one loud colour.
+   ─────────────────────────────────────────────────────────────── */
+
+[data-theme="playful"] {
+  --page: #f3e6d3;
+  --app-bg: radial-gradient(#e9d7bf 1.2px, transparent 1.4px) 0 0 / 22px 22px, #f3e6d3;
+  --surface: #fff8ee;
+  --surface-2: #ffffff;
+  --surface-3: #f5e9da;
+
+  --ink: #3a2a22;
+  --ink-2: #9a7e6b;
+  --ink-3: #c4ae9c;
+
+  --accent: #e8604c;
+  --accent-ink: #ffffff;
+  --accent-dark: #c94a37;
+  --accent-2: #c08463;
+
+  --good: #8bbf74;
+  --danger: #e8604c;
+
+  --line: #f0e2d0;
+  --line-strong: #ead8c3;
+
+  --note-bg: #fff1c9;
+  --note-line: #f1dda2;
+  --note-rule: #f3dfa6;
+
+  --mark-bg: #ffd0c0;
+
+  --f-display: Fredoka, system-ui, sans-serif;
+  --f-body: Nunito, system-ui, sans-serif;
+  --f-ui: Nunito, system-ui, sans-serif;
+
+  --ui-weight: 800;
+  --ui-size: 13px;
+  --ui-spacing: .01em;
+  --ui-transform: none;
+
+  --display-weight: 600;
+  --title-size: 34px;
+
+  --r-xs: 8px; --r-sm: 14px; --r-md: 18px; --r-lg: 22px; --r-pill: 999px;
+  --media-radius: 16px;
+
+  --frame-radius: 46px;
+  --frame-shadow: 0 0 0 10px #3a2a22, 0 30px 60px rgba(58,42,34,.25);
+
+  --focus: #3a2a22;
+  --focus-w: 2px;
+}
+
+[data-theme="playful"] .masthead__text::before {
+  content: "What's cooking?";
+  font-family: var(--f-ui); font-weight: 800; font-size: 12px;
+  letter-spacing: .12em; text-transform: uppercase; color: #c08463;
+}
+
+[data-theme="playful"] .masthead__mark { display: grid; }
+
+[data-theme="playful"] .group { box-shadow: 0 3px 0 rgba(58,42,34,.08); }
+
+[data-theme="playful"] .fab { display: flex; }
+
+[data-theme="playful"] .notes { font-family: var(--f-body); }
+
+[data-theme="playful"] .cook { --cook-ink: #3a2a22; --cook-chip: rgba(255,255,255,.72); --cook-track: rgba(255,255,255,.6); }
+[data-theme="playful"] .cook__text { font-weight: 500; }
+
+[data-theme="playful"] .sheet { border-radius: 30px 30px 0 0; }
+
+[data-theme="playful"] .step__text { font-weight: 600; }
