@@ -137,7 +137,8 @@ await check('tabs switch panels', async () => {
   return await evaluate("document.querySelector('.panels').dataset.active") === 'steps';
 });
 await check('start cooking enters cook mode', async () => {
-  await evaluate("[...document.querySelectorAll('button')].find(b=>/cook/i.test(b.textContent)).click()");
+  // Matched by position, not by label: "Mark as cooked" also says "cook".
+  await evaluate("document.querySelector('.steps .btn--block').click()");
   await sleep(400);
   return (await evaluate('location.hash')).includes('/cook/');
 });
@@ -152,6 +153,55 @@ await check('back button leaves cook mode', async () => {
   await evaluate('history.back()');
   await sleep(400);
   return !(await evaluate('location.hash')).includes('/cook/');
+});
+
+console.log('\ncooked marker and order');
+await check('the list runs easiest first', async () => {
+  await evaluate("location.hash = '#/'");
+  await sleep(300);
+  return await evaluate(`(() => {
+    const levels = [...document.querySelectorAll('.rcard .rcard__meta')]
+      .map(m => m.querySelectorAll('.dot--on').length);
+    return levels.every((n, i) => i === 0 || levels[i - 1] <= n);
+  })()`);
+});
+await check('finishing the last step marks it cooked and returns to the book', async () => {
+  // The seeded book only reaches localStorage on the first write, so ask
+  // the live store which recipe to cook.
+  const id = await evaluate(`(async () => {
+    const { store } = await import('./js/store.js');
+    const recipe = store.data.recipes.find(r => r.steps.length > 0);
+    location.hash = '#/r/' + recipe.id + '/cook/' + (recipe.steps.length - 1);
+    return recipe.id;
+  })()`);
+  await sleep(400);
+  await evaluate("document.querySelector('.btn--next').click()");
+  await sleep(400);
+  const hash = await evaluate('location.hash');
+  const cooked = await evaluate(
+    `!!JSON.parse(localStorage.getItem('recipebook.v2')).cooked['${id}']`);
+  return (hash === '#/' && cooked) || `${hash} / cooked=${cooked}`;
+});
+await check('a cooked recipe is badged in the list', async () =>
+  await evaluate("document.querySelectorAll('.rcard[data-cooked=\"true\"] .rcard__cooked').length") === 1);
+await check('the recipe page toggles the mark back off', async () => {
+  await evaluate("document.querySelector('.rcard[data-cooked=\"true\"]').click()");
+  await sleep(300);
+  const on = await evaluate("document.querySelector('.cooked').getAttribute('aria-pressed')");
+  await evaluate("document.querySelector('.cooked').click()");
+  await sleep(300);
+  const off = await evaluate("document.querySelector('.cooked').getAttribute('aria-pressed')");
+  return (on === 'true' && off === 'false') || `${on} -> ${off}`;
+});
+await check('an export carries the cooked marks', async () => {
+  await evaluate("document.querySelector('.cooked').click()");
+  await sleep(300);
+  return await evaluate(`(async () => {
+    const mod = await import('./js/formats.js');
+    const store = (await import('./js/store.js')).store;
+    const out = JSON.parse(mod.toJSON(store.data));
+    return Object.keys(out.cooked).length === 1;
+  })()`);
 });
 
 console.log('\ncreate and edit');

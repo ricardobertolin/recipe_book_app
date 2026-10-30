@@ -202,6 +202,28 @@
 [data-theme^="editorial"] .rcard__sep { background: var(--ink-3); }
 [data-theme^="editorial"] .dots { display: none; }
 
+/* Cooked: a stamped square in the margin of the entry. */
+[data-theme^="editorial"] .rcard__cooked {
+  right: -7px; bottom: -7px; width: 22px; height: 22px; border-radius: 0;
+  background: var(--ink); color: var(--surface);
+  font-family: var(--f-ui); font-weight: 500; font-size: 11px;
+  box-shadow: 0 0 0 2px var(--surface);
+}
+[data-theme^="editorial"] .cooked {
+  align-self: center; gap: 10px; padding: 0 0 7px; border-radius: 0;
+  background: none; box-shadow: none;
+  border-bottom: 1px solid var(--line-strong);
+  font-weight: 500; font-size: 10px; letter-spacing: .2em; text-transform: uppercase;
+}
+[data-theme^="editorial"] .cooked__box {
+  width: 14px; height: 14px; border-radius: 0;
+  border: 1px solid var(--ink); background: transparent;
+  color: var(--surface); font-size: 9px;
+}
+[data-theme^="editorial"] .cooked[aria-pressed="true"] .cooked__box {
+  background: var(--ink); border-color: var(--ink);
+}
+
 [data-layout="web"][data-theme^="editorial"] .cards { gap: 0 32px; }
 
 [data-theme^="editorial"] .empty { border: 0; padding: 48px 10px; }
@@ -260,7 +282,13 @@
 }
 [data-theme^="editorial"] .ing[aria-pressed="true"] .ing__box { background: var(--ink); border-color: var(--ink); }
 /* Checkbox, then the quantity column, then the ingredient. */
-[data-theme^="editorial"] .ing__qty { order: 1; width: 78px; flex: none; font-family: var(--f-body); font-weight: 600; font-size: 15px; color: var(--ink); }
+/* The quantity sets its own column so short measures line up, but it is a
+   minimum rather than a cap: "2 colheres de sopa" has to fit too. */
+[data-theme^="editorial"] .ing__qty {
+  order: 1; flex: 0 0 auto; min-width: 78px; max-width: 42%;
+  white-space: normal;
+  font-family: var(--f-body); font-weight: 600; font-size: 15px; color: var(--ink);
+}
 [data-theme^="editorial"] .ing__name { order: 2; font-weight: 400; font-size: 16px; }
 
 /* Method: hanging italic numerals. */

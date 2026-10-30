@@ -3,6 +3,7 @@
 import { h, svg } from '../dom.js';
 import { icon } from '../icons.js';
 import { groupColor, mediaBackground } from '../themes.js';
+import { shortDate } from '../util.js';
 
 export const iconEl = (name, theme) => svg(icon(name, theme));
 
@@ -34,21 +35,34 @@ export function metaLine(ctx, recipe) {
 export function recipeCard(ctx, recipe) {
   const group = recipe.groupId ? ctx.store.group(recipe.groupId) : null;
   const lvBg = ctx.theme.lvBg ? ctx.theme.lvBg[recipe.difficulty] : null;
+  const cooked = ctx.store.cookedAt(recipe.id);
 
   return h('button', {
     class: 'rcard',
     type: 'button',
+    dataset: { cooked: cooked ? 'true' : 'false' },
     style: { ...mediaVars(ctx, recipe), '--lv-bg': lvBg },
     onclick: () => ctx.nav.recipe(recipe.id)
   },
     h('span', { class: 'rcard__lv', 'aria-hidden': 'true' },
       h('b', { text: 'LV' }),
       h('span', { text: String(recipe.difficulty + 1) })),
-    h('span', { class: 'rcard__media', 'aria-hidden': 'true' }),
+    h('span', { class: 'rcard__media', 'aria-hidden': 'true' },
+      cooked ? cookedStamp(ctx, cooked) : null),
     h('span', { class: 'rcard__body' },
       h('span', { class: 'rcard__kicker', text: group ? group.name : 'Unfiled' }),
       h('span', { class: 'rcard__title', text: recipe.title || 'Untitled' }),
       metaLine(ctx, recipe)));
+}
+
+/** The "already made this" badge that sits on a cooked recipe's tile. */
+function cookedStamp(ctx, when) {
+  const { copy } = ctx;
+  return h('span', {
+    class: 'rcard__cooked',
+    title: copy.cookedOn(shortDate(when)),
+    'aria-label': copy.cookedOn(shortDate(when))
+  }, h('span', { 'aria-hidden': 'true', text: '✓' }));
 }
 
 export function sectionHead(title, action) {

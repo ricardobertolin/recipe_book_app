@@ -5,7 +5,7 @@
 import { h } from '../dom.js';
 import { CONFIG } from '../config.js';
 import { groupColor } from '../themes.js';
-import { readImageFile } from '../util.js';
+import { readImageFile, shortDate } from '../util.js';
 import { iconEl, mediaVars, photoPicker, difficultyDots, toastHost } from './common.js';
 
 export function renderRecipe(ctx) {
@@ -19,6 +19,7 @@ export function renderRecipe(ctx) {
   page.append(hero(ctx, recipe));
   page.append(h('div', { class: 'sheetTop' },
     head(ctx, recipe, group),
+    cookedToggle(ctx, recipe),
     stats(ctx, recipe),
     panels(ctx, recipe)));
 
@@ -68,6 +69,20 @@ function head(ctx, recipe, group) {
   return h('div', { class: 'recipe__head', style: { '--group-color': groupColor(theme, group) } },
     h('span', { class: 'recipe__kicker', text: group ? group.name : 'Unfiled' }),
     h('h1', { class: 'recipe__title', text: recipe.title || 'Untitled' }));
+}
+
+/** Have I made this one yet? Set automatically when cook mode finishes,
+ *  and togglable by hand for the dishes cooked before the app existed. */
+function cookedToggle(ctx, recipe) {
+  const { store, copy } = ctx;
+  const when = store.cookedAt(recipe.id);
+  return h('button', {
+    class: 'cooked', type: 'button',
+    'aria-pressed': when ? 'true' : 'false',
+    onclick: () => store.toggleCooked(recipe.id)
+  },
+    h('span', { class: 'cooked__box', 'aria-hidden': 'true', text: when ? '✓' : '' }),
+    h('span', { class: 'cooked__label', text: when ? copy.cookedOn(shortDate(when)) : copy.markCooked }));
 }
 
 function stats(ctx, recipe) {

@@ -77,10 +77,11 @@ export const SEED = {
       ],
       notes: 'Chilli flakes on top for the grown-ups.'
     }
-  ]
+  ],
+  cooked: {}
 };
 
-const EMPTY = { version: 2, groups: [], recipes: [] };
+const EMPTY = { version: 2, groups: [], recipes: [], cooked: {} };
 
 /** Every palette the app has ever shipped, so legacy hex colours can be
  *  turned back into an index. */
@@ -103,28 +104,45 @@ function colorToIndex(hex) {
 
 function normalise(raw) {
   if (!raw || !Array.isArray(raw.groups) || !Array.isArray(raw.recipes)) return null;
-  return {
-    version: 2,
-    groups: raw.groups.map((g) => ({
-      id: g.id || uid(),
-      name: String(g.name ?? 'Untitled'),
-      colorIndex: typeof g.colorIndex === 'number' ? g.colorIndex : colorToIndex(g.color)
-    })),
-    recipes: raw.recipes.map((r) => ({
-      id: r.id || uid(),
-      groupId: r.groupId ?? null,
-      title: String(r.title ?? ''),
-      difficulty: Number.isInteger(r.difficulty) ? Math.min(2, Math.max(0, r.difficulty)) : 0,
-      time: r.time === '' || r.time === null || r.time === undefined ? '' : Number(r.time) || '',
-      servings: r.servings === '' || r.servings === null || r.servings === undefined ? '' : Number(r.servings) || '',
-      photo: typeof r.photo === 'string' ? r.photo : null,
-      ingredients: Array.isArray(r.ingredients)
-        ? r.ingredients.map((i) => ({ qty: String(i.qty ?? ''), name: String(i.name ?? '') }))
-        : [],
-      steps: Array.isArray(r.steps) ? r.steps.map((s) => String(s)) : [],
-      notes: String(r.notes ?? '')
-    }))
-  };
+  const groups = raw.groups.map((g) => ({
+    id: g.id || uid(),
+    name: String(g.name ?? 'Untitled'),
+    colorIndex: typeof g.colorIndex === 'number' ? g.colorIndex : colorToIndex(g.color)
+  }));
+  const recipes = raw.recipes.map((r) => ({
+    id: r.id || uid(),
+    groupId: r.groupId ?? null,
+    title: String(r.title ?? ''),
+    difficulty: Number.isInteger(r.difficulty) ? Math.min(2, Math.max(0, r.difficulty)) : 0,
+    time: r.time === '' || r.time === null || r.time === undefined ? '' : Number(r.time) || '',
+    servings: r.servings === '' || r.servings === null || r.servings === undefined ? '' : Number(r.servings) || '',
+    photo: typeof r.photo === 'string' ? r.photo : null,
+    ingredients: Array.isArray(r.ingredients)
+      ? r.ingredients.map((i) => ({ qty: String(i.qty ?? ''), name: String(i.name ?? '') }))
+      : [],
+    steps: Array.isArray(r.steps) ? r.steps.map((s) => String(s)) : [],
+    notes: String(r.notes ?? '')
+  }));
+  return { version: 2, groups, recipes, cooked: normaliseCooked(raw.cooked, recipes) };
+}
+
+/**
+ * When each recipe was last cooked, keyed by recipe id.
+ *
+ * Deliberately kept beside the recipes rather than inside them: cooking a
+ * dish is a fact about *you*, not about the recipe, so it must not make an
+ * otherwise identical re-import look like a changed recipe (see sameRecipe).
+ * Entries pointing at recipes that are gone are dropped on the way in.
+ */
+function normaliseCooked(raw, recipes) {
+  if (!raw || typeof raw !== 'object') return {};
+  const ids = new Set(recipes.map((r) => r.id));
+  const out = {};
+  for (const [id, when] of Object.entries(raw)) {
+    if (!ids.has(id) || !when) continue;
+    out[id] = typeof when === 'string' ? when : new Date().toISOString();
+  }
+  return out;
 }
 
 /** Content equality, ignoring the id, so a re-import is recognised. */
@@ -202,6 +220,9 @@ class Store extends EventTarget {
   groupIndex(id) { return this.data.groups.findIndex((g) => g.id === id); }
   recipesIn(groupId) { return this.data.recipes.filter((r) => r.groupId === groupId); }
 
+  /** ISO timestamp of the last time this recipe was cooked, or null. */
+  cookedAt(id) { return this.data.cooked?.[id] || null; }
+
   search(query, groupId = null) {
     const q = query.trim().toLowerCase();
     let pool = groupId ? this.recipesIn(groupId) : this.data.recipes;
@@ -247,7 +268,23 @@ class Store extends EventTarget {
   }
 
   removeRecipe(id) {
-    this.#commit({ ...this.data, recipes: this.data.recipes.filter((r) => r.id !== id) });
+    const cooked = { ...this.data.cooked };
+    delete cooked[id];
+    this.#commit({ ...this.data, recipes: this.data.recipes.filter((r) => r.id !== id), cooked });
+  }
+
+  /** Mark a recipe as cooked (now) or clear the mark. */
+  setCooked(id, done = true) {
+    const cooked = { ...this.data.cooked };
+    if (done) cooked[id] = new Date().toISOString();
+    else delete cooked[id];
+    this.#commit({ ...this.data, cooked });
+  }
+
+  toggleCooked(id) {
+    const next = !this.cookedAt(id);
+    this.setCooked(id, next);
+    return next;
   }
 
   setPhoto(id, photo) {
@@ -294,6 +331,7 @@ class Store extends EventTarget {
 
     const recipes = this.data.recipes.slice();
     const byId = new Map(recipes.map((r) => [r.id, r]));
+    const cooked = { ...this.data.cooked };
     let recipesAdded = 0;
     let skipped = 0;
 
@@ -302,17 +340,24 @@ class Store extends EventTarget {
         ...recipe,
         groupId: recipe.groupId ? (groupIdMap.get(recipe.groupId) ?? null) : null
       };
+      const wasCooked = incoming.cooked[recipe.id];
       const existing = byId.get(mapped.id);
       if (existing) {
-        if (sameRecipe(existing, mapped)) { skipped++; continue; }
+        if (sameRecipe(existing, mapped)) {
+          // A re-import of the same recipe still brings its cooked mark over.
+          if (wasCooked && !cooked[mapped.id]) cooked[mapped.id] = wasCooked;
+          skipped++;
+          continue;
+        }
         mapped.id = uid();
       }
       recipes.push(mapped);
       byId.set(mapped.id, mapped);
+      if (wasCooked) cooked[mapped.id] = wasCooked;
       recipesAdded++;
     }
 
-    this.#commit({ version: 2, groups, recipes });
+    this.#commit({ version: 2, groups, recipes, cooked });
     return { groups: groupsAdded, recipes: recipesAdded, skipped };
   }
 

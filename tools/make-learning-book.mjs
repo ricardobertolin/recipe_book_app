@@ -1,5 +1,7 @@
 /** Rebuild the user's Portuguese learning list as an importable Recipe Book. */
 import { writeFileSync } from 'node:fs';
+import { stepsPt } from './steps-pt.mjs';
+import { ingredientsPt } from './ingredients-pt.mjs';
 
 // Within each chapter: five Easy, five Medium, five Hard, in the supplied order.
 const chapters = [
@@ -116,19 +118,32 @@ const recipes = chapters.flatMap(([, text, context], chapter) => {
   return lines.map((line, i) => {
     const [title, technique] = line.split(' — ');
     if (!title || !technique) throw new Error(`Incomplete entry: ${line}`);
+    const id = `aprendizado-receita-${chapter + 1}-${String(i + 1).padStart(2, '0')}`;
+    const steps = stepsPt[id];
+    const ingredients = ingredientsPt[id];
+    if (!steps?.length) throw new Error(`Sem modo de preparo: ${id} (${title})`);
+    if (!ingredients?.length) throw new Error(`Sem ingredientes: ${id} (${title})`);
     return {
-      id: `aprendizado-receita-${chapter + 1}-${String(i + 1).padStart(2, '0')}`,
+      id,
       groupId: groups[chapter].id,
       title,
       difficulty: Math.floor(i / 5),
-      time: '', servings: '', photo: null, ingredients: [], steps: [],
+      time: '', servings: '', photo: null,
+      ingredients: ingredients.map(([qty, name]) => ({ qty, name })),
+      steps,
       notes: `Técnica a praticar: ${technique}` + (context ? `\n\nSobre a categoria: ${context}` : '')
     };
   });
 });
 
-// Fixed IDs make repeated Merge imports safe; retain the supplied outline,
-// leaving quantities and methods empty instead of inventing recipe details.
+for (const [label, table] of [['Modo de preparo', stepsPt], ['Ingredientes', ingredientsPt]]) {
+  const extras = Object.keys(table).filter((id) => !recipes.some((r) => r.id === id));
+  if (extras.length) throw new Error(`${label} sem receita: ${extras.join(', ')}`);
+}
+
+// Fixed IDs make repeated Merge imports safe; the outline stays as supplied.
+// Steps and ingredients live in their own modules so this file stays an
+// outline and the content is editable without touching the build.
 const book = { app: 'recipe-book', version: 2, groups, recipes };
 const output = new URL('../receitas-90.json', import.meta.url);
 writeFileSync(output, JSON.stringify(book, null, 2) + '\n', 'utf8');

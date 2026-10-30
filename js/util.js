@@ -70,3 +70,10 @@ export function download(filename, text, type = 'application/json') {
 }
 
 export const todayStamp = () => new Date().toISOString().slice(0, 10);
+
+/** "12 Mar" style label for a stored ISO timestamp, in the reader's locale. */
+export function shortDate(iso) {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+}

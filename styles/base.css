@@ -237,10 +237,23 @@ img { max-width: 100%; display: block; }
 /* `--media` is a full `background` shorthand (it carries its own size for
    both photos and generated swatches) — do not add background-size here. */
 .rcard__media {
+  position: relative;
   width: 68px; height: 68px; flex: none;
   border-radius: var(--media-radius);
   background: var(--media);
 }
+
+/* Already cooked: a tick on the tile, and the whole card steps back a
+   little so the ones still to try stand out. */
+.rcard__cooked {
+  position: absolute; right: -4px; bottom: -4px;
+  width: 24px; height: 24px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--good); color: #fff;
+  font-family: var(--f-ui); font-weight: 800; font-size: 13px; line-height: 1;
+  box-shadow: 0 0 0 2.5px var(--surface-2);
+}
+.rcard[data-cooked="true"] .rcard__title { opacity: .72; }
 .rcard__body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
 .rcard__kicker { display: none; }
 /* `html` prefix so this still wins over the themes that switch the kicker on. */
@@ -304,6 +317,26 @@ html .cards--scoped .rcard__kicker { display: none; }
   letter-spacing: var(--ui-spacing); text-transform: var(--ui-transform);
 }
 .recipe__title { font-family: var(--f-display); font-weight: var(--display-weight); font-size: 29px; line-height: 1.1; text-wrap: pretty; }
+
+/* ── Cooked marker ───────────────────────────────────────────── */
+.cooked {
+  display: flex; align-items: center; gap: 10px; align-self: flex-start;
+  padding: 8px 14px 8px 10px; border: 0;
+  background: var(--surface-2); color: var(--ink-2);
+  border-radius: var(--r-pill); box-shadow: var(--shadow-card);
+  font-family: var(--f-ui); font-weight: var(--ui-weight);
+  font-size: var(--ui-size); letter-spacing: var(--ui-spacing); text-transform: var(--ui-transform);
+  transition: transform var(--speed);
+}
+.cooked:active { transform: scale(.98); }
+.cooked[aria-pressed="true"] { color: var(--ink); }
+.cooked__box {
+  width: 22px; height: 22px; flex: none; border-radius: 50%;
+  border: 2.5px solid var(--line-strong); background: var(--surface);
+  display: grid; place-items: center;
+  color: #fff; font-size: 12px; line-height: 1;
+}
+.cooked[aria-pressed="true"] .cooked__box { border-color: var(--good); background: var(--good); }
 
 .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .stat {

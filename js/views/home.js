@@ -181,6 +181,11 @@ function listSection(ctx, activeGroup, chapterPage) {
   return section;
 }
 
+/** Level 1 first, then 2, then 3. Array.sort is stable, so recipes of the
+ *  same level keep the order they have in the book. */
+const byDifficulty = (recipes) =>
+  recipes.slice().sort((a, b) => a.difficulty - b.difficulty);
+
 export function paintList(ctx) {
   const nodes = ctx._listNodes;
   if (!nodes) return;
@@ -194,14 +199,18 @@ export function paintList(ctx) {
   const scope = activeGroup ? activeGroup.id : null;
   let results = store.search(state.search, scope);
 
-  // Phone shell + a theme with group pages shows a short "recently added"
-  // teaser on home, exactly like v1 and v2 did. Everywhere else, show it all.
+  // Phone shell + a theme with group pages shows a short teaser on home,
+  // exactly like v1 and v2 did. Everywhere else, show it all.
   const teaser = !searching && !activeGroup && ctx.layout !== 'web' && theme.groupNav === 'page';
-  if (!searching) results = results.slice().reverse();
+
+  // Every list reads easiest first, so a chapter can be worked through in
+  // order. That also makes the teaser the four to start with, not the four
+  // that happened to be imported last.
+  results = byDifficulty(results);
   if (teaser) results = results.slice(0, 4);
 
   const title = searching ? copy.searchResults
-    : teaser ? copy.recent
+    : teaser ? copy.startHere
       : activeGroup ? activeGroup.name
         : copy.allRecipes;
 

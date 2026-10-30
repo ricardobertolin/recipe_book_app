@@ -22,12 +22,16 @@ const DIFF = ['Easy', 'Medium', 'Hard'];
 export function toJSON(data, recipes = data.recipes, opts = {}) {
   const withPhotos = opts.withPhotos !== false;
   const used = new Set(recipes.map((r) => r.groupId).filter(Boolean));
+  const ids = new Set(recipes.map((r) => r.id));
+  const cooked = Object.fromEntries(
+    Object.entries(data.cooked || {}).filter(([id]) => ids.has(id)));
   return JSON.stringify({
     app: FILE_KIND,
     version: FILE_VERSION,
     exported: new Date().toISOString(),
     groups: data.groups.filter((g) => used.has(g.id)),
-    recipes: recipes.map((r) => (withPhotos ? r : { ...r, photo: null }))
+    recipes: recipes.map((r) => (withPhotos ? r : { ...r, photo: null })),
+    cooked
   }, null, 2);
 }
 

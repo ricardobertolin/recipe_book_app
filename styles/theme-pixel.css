@@ -202,6 +202,22 @@
   box-shadow: var(--shadow-card);
 }
 [data-theme="pixel"] .rcard__kicker { display: none; }
+/* Cleared: a hard-edged tick plate on the corner of the tile. */
+[data-theme="pixel"] .rcard__cooked {
+  right: -5px; bottom: -5px; width: 20px; height: 20px; border-radius: 0;
+  background: #3f7a3a; color: #f5e6c4; font-size: 12px; font-weight: 700;
+  box-shadow: 0 0 0 2px #3d2a1c;
+}
+[data-theme="pixel"] .cooked {
+  border-radius: 0; padding: 8px 12px; gap: 8px;
+  background: #f5e6c4; color: #3d2a1c; box-shadow: 0 0 0 2px #3d2a1c;
+}
+[data-theme="pixel"] .cooked__box {
+  width: 18px; height: 18px; border: 0; border-radius: 0;
+  background: #e9d6b2; box-shadow: 0 0 0 2px #3d2a1c;
+  color: #3f7a3a; font-weight: 700; font-size: 14px;
+}
+[data-theme="pixel"] .cooked[aria-pressed="true"] .cooked__box { background: #e9d6b2; }
 [data-theme="pixel"] .rcard__title { font-size: 17px; font-weight: 600; line-height: 1.1; }
 [data-theme="pixel"] .rcard__meta { font-size: 13px; font-weight: 500; color: var(--ink-2); }
 [data-theme="pixel"] .dots { display: none; }

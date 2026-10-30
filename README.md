@@ -144,16 +144,21 @@ The serialization lives in `js/formats.js` and the merge in `store.merge()`.
 
 ### Portuguese learning collection
 
-[`receitas-90.json`](./receitas-90.json) contains the supplied 90 recipe outlines
-in six categories, each with five Easy, five Medium and five Hard entries. Titles
-and technique notes remain in Portuguese. Ingredients, steps, time and servings
-are blank because the source list did not include them. Category descriptions are
-preserved in each relevant recipe's notes.
+[`receitas-90.json`](./receitas-90.json) contains the supplied 90 recipes in six
+categories, each with five Easy, five Medium and five Hard entries. Everything is
+in Portuguese: titles, technique notes, ingredient lists and a full step-by-step
+method per recipe. Time and servings are left blank, since the source list did not
+include them. Category descriptions are preserved in each relevant recipe's notes.
 
 To import: **Settings → Import / export → Choose a file → receitas-90.json**.
 Use **Merge** to keep existing recipes, or **Replace** to use only this collection.
-Repeated Merge imports skip unchanged entries. Regenerate the file with
-`node tools/make-learning-book.mjs` after editing the source list in that script.
+Repeated Merge imports skip unchanged entries.
+
+The file is generated. `tools/make-learning-book.mjs` holds the outline,
+`tools/steps-pt.mjs` the methods and `tools/ingredients-pt.mjs` the ingredient
+lists, all keyed by recipe id; run `node tools/make-learning-book.mjs` to rebuild
+it after an edit. The build fails rather than emitting a recipe with no steps or
+no ingredients.
 
 ## Data
 
@@ -168,6 +173,16 @@ also picks up anything the original Design Components prototypes wrote to
 
 Settings live separately under `recipebook.settings` so resetting the recipes does not
 reset the look.
+
+Which dishes you have already cooked is kept in a `cooked` map beside the recipes,
+keyed by recipe id, rather than as a field on the recipe itself: having made
+something is a fact about the cook, not about the recipe, so it must not make an
+otherwise identical re-import look like a changed recipe. Finishing the last step
+in cook mode sets the mark and returns to the book; the pill under a recipe's title
+toggles it by hand. Exports carry the marks for the recipes they include.
+
+Recipe lists are ordered by difficulty, easiest first, so a chapter can be worked
+through top to bottom.
 
 ## Offline
 

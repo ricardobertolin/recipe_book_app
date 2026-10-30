@@ -4,6 +4,7 @@
 import { h } from '../dom.js';
 import { groupColor } from '../themes.js';
 import { clamp } from '../util.js';
+import { toastHost } from './common.js';
 
 let wakeLock = null;
 
@@ -49,7 +50,7 @@ export function renderCook(ctx) {
         }, copy.cookBack),
         h('button', {
           class: 'btn btn--next', type: 'button',
-          onclick: () => (last ? ctx.nav.recipe(recipe.id) : ctx.nav.cook(recipe.id, index + 1))
+          onclick: () => (last ? finish(ctx, recipe) : ctx.nav.cook(recipe.id, index + 1))
         }, last ? copy.cookDone : copy.cookNext))));
 
   page.addEventListener('keydown', (e) => {
@@ -62,6 +63,14 @@ export function renderCook(ctx) {
 
   requestWakeLock();
   return page;
+}
+
+/** The last step is the end of the job: record that the dish was made and
+ *  go back to the book, rather than dropping the cook back on the steps. */
+function finish(ctx, recipe) {
+  ctx.nav.home();
+  ctx.store.setCooked(recipe.id, true);
+  toastHost(ctx.copy.cookedToast);
 }
 
 async function requestWakeLock() {
