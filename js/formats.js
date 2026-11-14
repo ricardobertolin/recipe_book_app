@@ -8,7 +8,7 @@
 import { todayStamp } from './util.js';
 
 export const FILE_KIND = 'recipe-book';
-export const FILE_VERSION = 2;
+export const FILE_VERSION = 3;
 
 const DIFF = ['Easy', 'Medium', 'Hard'];
 
@@ -25,13 +25,16 @@ export function toJSON(data, recipes = data.recipes, opts = {}) {
   const ids = new Set(recipes.map((r) => r.id));
   const cooked = Object.fromEntries(
     Object.entries(data.cooked || {}).filter(([id]) => ids.has(id)));
+  const ratings = Object.fromEntries(
+    Object.entries(data.ratings || {}).filter(([id]) => ids.has(id)));
   return JSON.stringify({
     app: FILE_KIND,
     version: FILE_VERSION,
     exported: new Date().toISOString(),
     groups: data.groups.filter((g) => used.has(g.id)),
-    recipes: recipes.map((r) => (withPhotos ? r : { ...r, photo: null })),
-    cooked
+    recipes: recipes.map((r) => (withPhotos ? r : { ...r, photos: [], favePhoto: null })),
+    cooked,
+    ratings
   }, null, 2);
 }
 
@@ -60,14 +63,23 @@ export function parseJSON(text) {
 
 const esc = (s) => String(s ?? '').replace(/\r\n/g, '\n').trim();
 
-function recipeBody(recipe, { diff = DIFF, heading = '##' } = {}) {
+/** "★ 4.3 (6)" when the dish has been rated, otherwise nothing. */
+function ratingFact(data, recipe) {
+  const list = data.ratings?.[recipe.id];
+  if (!Array.isArray(list) || list.length === 0) return null;
+  const avg = list.reduce((s, e) => s + (e.value || 0), 0) / list.length;
+  return `★ ${Math.round(avg * 10) / 10} (${list.length})`;
+}
+
+function recipeBody(recipe, { diff = DIFF, heading = '##', rating = null } = {}) {
   const lines = [];
   lines.push(`${heading} ${esc(recipe.title) || 'Untitled'}`, '');
 
   const facts = [
     recipe.time ? `${recipe.time} min` : null,
     recipe.servings ? `Serves ${recipe.servings}` : null,
-    diff[recipe.difficulty] || null
+    diff[recipe.difficulty] || null,
+    rating
   ].filter(Boolean);
   if (facts.length) lines.push(`_${facts.join(' · ')}_`, '');
 
@@ -98,7 +110,7 @@ function recipeBody(recipe, { diff = DIFF, heading = '##' } = {}) {
 
 export function recipeToMarkdown(data, recipe, diff) {
   const group = recipe.groupId ? data.groups.find((g) => g.id === recipe.groupId) : null;
-  const lines = recipeBody(recipe, { diff, heading: '#' });
+  const lines = recipeBody(recipe, { diff, heading: '#', rating: ratingFact(data, recipe) });
   if (group) lines.splice(2, 0, `_${esc(group.name)}_`, '');
   return lines.join('\n').replace(/\n{3,}/g, '\n\n').trim() + '\n';
 }
@@ -120,7 +132,7 @@ export function bookToMarkdown(data, diff) {
   for (const [name, recipes] of sections) {
     if (!recipes.length) continue;
     lines.push(`## ${esc(name)}`, '');
-    for (const recipe of recipes) lines.push(...recipeBody(recipe, { diff, heading: '###' }));
+    for (const recipe of recipes) lines.push(...recipeBody(recipe, { diff, heading: '###', rating: ratingFact(data, recipe) }));
   }
 
   return lines.join('\n').replace(/\n{3,}/g, '\n\n').trim() + '\n';

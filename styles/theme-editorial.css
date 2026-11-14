@@ -231,10 +231,17 @@
 
 /* Recipe page. */
 [data-theme^="editorial"] .hero { height: 320px; }
-[data-theme^="editorial"] .hero__photo {
+[data-theme^="editorial"] .hero__photo,
+[data-theme^="editorial"] .hero__album {
   border-radius: 0; background: var(--surface); box-shadow: none;
   font-size: 10px; letter-spacing: .16em;
 }
+[data-theme^="editorial"] .albumph, [data-theme^="editorial"] .albumph--add { border-radius: 0; }
+[data-theme^="editorial"] .albumph[data-cover="true"] { outline: 2px solid var(--ink); outline-offset: -2px; }
+[data-theme^="editorial"] .ratebtn { border-radius: 0; border: 1px solid var(--line-strong); background: transparent; }
+[data-theme^="editorial"] .stars__on { color: var(--accent); }
+[data-theme^="editorial"] .ratebtn__stars { color: var(--accent); }
+[data-theme^="editorial"] .rcard__rating { color: var(--accent); }
 [data-theme^="editorial"] .sheetTop { margin-top: 0; border-radius: 0; padding-top: 28px; gap: 26px; }
 [data-theme^="editorial"] .recipe__head { align-items: center; text-align: center; }
 [data-theme^="editorial"] .recipe__kicker {

@@ -5,13 +5,22 @@
  */
 
 import { CONFIG } from './config.js';
-import { uid } from './util.js';
+import { uid, clamp } from './util.js';
 import { THEMES } from './themes.js';
 
 const ing = (pairs) => pairs.map(([qty, name]) => ({ qty, name }));
 
+/** The photo shown everywhere a recipe needs one: the favourite, if set,
+ *  otherwise the first of the album. Works on drafts too. */
+export function coverPhoto(recipe) {
+  if (!recipe || !Array.isArray(recipe.photos) || recipe.photos.length === 0) return null;
+  return recipe.photos.find((p) => p.id === recipe.favePhoto) || recipe.photos[0];
+}
+
+export const coverUrl = (recipe) => coverPhoto(recipe)?.url || null;
+
 export const SEED = {
-  version: 2,
+  version: 3,
   groups: [
     { id: 'g1', name: 'Breakfast', colorIndex: 0 },
     { id: 'g2', name: 'Weeknight dinners', colorIndex: 1 },
@@ -20,7 +29,7 @@ export const SEED = {
   ],
   recipes: [
     {
-      id: 'r1', groupId: 'g1', title: 'Fluffy pancakes', difficulty: 0, time: 20, servings: 4, photo: null,
+      id: 'r1', groupId: 'g1', title: 'Fluffy pancakes', difficulty: 0, time: 20, servings: 4, photos: [], favePhoto: null,
       ingredients: ing([['200 g', 'Plain flour'], ['2 tsp', 'Baking powder'], ['1 tbsp', 'Sugar'], ['1 pinch', 'Salt'], ['2', 'Eggs'], ['300 ml', 'Milk'], ['2 tbsp', 'Melted butter']]),
       steps: [
         'Whisk the flour, baking powder, sugar and salt in a large bowl.',
@@ -33,7 +42,7 @@ export const SEED = {
       notes: 'Rest the batter for 10 minutes for extra fluffy ones.\nDrop blueberries on after pouring, not into the bowl.'
     },
     {
-      id: 'r2', groupId: 'g4', title: 'Tomato basil soup', difficulty: 0, time: 35, servings: 4, photo: null,
+      id: 'r2', groupId: 'g4', title: 'Tomato basil soup', difficulty: 0, time: 35, servings: 4, photos: [], favePhoto: null,
       ingredients: ing([['2 tbsp', 'Olive oil'], ['1', 'Onion, chopped'], ['2 cloves', 'Garlic'], ['800 g', 'Tinned tomatoes'], ['500 ml', 'Vegetable stock'], ['1 handful', 'Basil leaves']]),
       steps: [
         'Soften the onion in olive oil for 8 minutes.',
@@ -44,7 +53,7 @@ export const SEED = {
       notes: 'A splash of cream at the end makes it extra cosy.'
     },
     {
-      id: 'r3', groupId: 'g3', title: 'Lemon drizzle cake', difficulty: 1, time: 60, servings: 8, photo: null,
+      id: 'r3', groupId: 'g3', title: 'Lemon drizzle cake', difficulty: 1, time: 60, servings: 8, photos: [], favePhoto: null,
       ingredients: ing([['225 g', 'Softened butter'], ['225 g', 'Caster sugar'], ['4', 'Eggs'], ['225 g', 'Self-raising flour'], ['2', 'Lemons, zested & juiced'], ['85 g', 'Icing sugar']]),
       steps: [
         'Heat oven to 180°C and line a loaf tin.',
@@ -56,7 +65,7 @@ export const SEED = {
       notes: 'Prick the top with a fork before drizzling so it soaks in.'
     },
     {
-      id: 'r4', groupId: 'g2', title: 'Chicken katsu curry', difficulty: 2, time: 50, servings: 2, photo: null,
+      id: 'r4', groupId: 'g2', title: 'Chicken katsu curry', difficulty: 2, time: 50, servings: 2, photos: [], favePhoto: null,
       ingredients: ing([['2', 'Chicken breasts'], ['50 g', 'Plain flour'], ['1', 'Egg, beaten'], ['80 g', 'Panko'], ['1', 'Onion'], ['1', 'Carrot'], ['2 tbsp', 'Curry powder'], ['400 ml', 'Chicken stock']]),
       steps: [
         'Fry onion and carrot until soft, stir in curry powder and flour.',
@@ -68,7 +77,7 @@ export const SEED = {
       notes: ''
     },
     {
-      id: 'r5', groupId: 'g2', title: 'Garlic butter pasta', difficulty: 0, time: 15, servings: 2, photo: null,
+      id: 'r5', groupId: 'g2', title: 'Garlic butter pasta', difficulty: 0, time: 15, servings: 2, photos: [], favePhoto: null,
       ingredients: ing([['200 g', 'Spaghetti'], ['40 g', 'Butter'], ['3 cloves', 'Garlic, sliced'], ['30 g', 'Parmesan'], ['1 small bunch', 'Parsley']]),
       steps: [
         'Cook the pasta in salted water. Save a mug of pasta water.',
@@ -78,10 +87,11 @@ export const SEED = {
       notes: 'Chilli flakes on top for the grown-ups.'
     }
   ],
-  cooked: {}
+  cooked: {},
+  ratings: {}
 };
 
-const EMPTY = { version: 2, groups: [], recipes: [], cooked: {} };
+const EMPTY = { version: 3, groups: [], recipes: [], cooked: {}, ratings: {} };
 
 /** Every palette the app has ever shipped, so legacy hex colours can be
  *  turned back into an index. */
@@ -109,21 +119,48 @@ function normalise(raw) {
     name: String(g.name ?? 'Untitled'),
     colorIndex: typeof g.colorIndex === 'number' ? g.colorIndex : colorToIndex(g.color)
   }));
-  const recipes = raw.recipes.map((r) => ({
-    id: r.id || uid(),
-    groupId: r.groupId ?? null,
-    title: String(r.title ?? ''),
-    difficulty: Number.isInteger(r.difficulty) ? Math.min(2, Math.max(0, r.difficulty)) : 0,
-    time: r.time === '' || r.time === null || r.time === undefined ? '' : Number(r.time) || '',
-    servings: r.servings === '' || r.servings === null || r.servings === undefined ? '' : Number(r.servings) || '',
-    photo: typeof r.photo === 'string' ? r.photo : null,
-    ingredients: Array.isArray(r.ingredients)
-      ? r.ingredients.map((i) => ({ qty: String(i.qty ?? ''), name: String(i.name ?? '') }))
-      : [],
-    steps: Array.isArray(r.steps) ? r.steps.map((s) => String(s)) : [],
-    notes: String(r.notes ?? '')
-  }));
-  return { version: 2, groups, recipes, cooked: normaliseCooked(raw.cooked, recipes) };
+  const recipes = raw.recipes.map((r) => {
+    const photos = normalisePhotos(r);
+    return {
+      id: r.id || uid(),
+      groupId: r.groupId ?? null,
+      title: String(r.title ?? ''),
+      difficulty: Number.isInteger(r.difficulty) ? Math.min(2, Math.max(0, r.difficulty)) : 0,
+      time: r.time === '' || r.time === null || r.time === undefined ? '' : Number(r.time) || '',
+      servings: r.servings === '' || r.servings === null || r.servings === undefined ? '' : Number(r.servings) || '',
+      photos,
+      favePhoto: photos.some((p) => p.id === r.favePhoto) ? r.favePhoto : (photos[0]?.id ?? null),
+      ingredients: Array.isArray(r.ingredients)
+        ? r.ingredients.map((i) => ({ qty: String(i.qty ?? ''), name: String(i.name ?? '') }))
+        : [],
+      steps: Array.isArray(r.steps) ? r.steps.map((s) => String(s)) : [],
+      notes: String(r.notes ?? '')
+    };
+  });
+  return {
+    version: 3,
+    groups,
+    recipes,
+    cooked: normaliseCooked(raw.cooked, recipes),
+    ratings: normaliseRatings(raw.ratings, recipes)
+  };
+}
+
+/** v2 books carried a single `photo` string; v3 keeps an album of
+ *  `{ id, url, date }`. A migrated photo has no date — the day it was
+ *  added was never recorded — so its stamp simply stays off. */
+function normalisePhotos(r) {
+  if (Array.isArray(r.photos)) {
+    return r.photos
+      .filter((p) => p && typeof p.url === 'string' && p.url)
+      .map((p) => ({
+        id: p.id || uid(),
+        url: p.url,
+        date: typeof p.date === 'string' ? p.date : null
+      }));
+  }
+  if (typeof r.photo === 'string' && r.photo) return [{ id: uid(), url: r.photo, date: null }];
+  return [];
 }
 
 /**
@@ -145,11 +182,35 @@ function normaliseCooked(raw, recipes) {
   return out;
 }
 
+/**
+ * Every rating ever given to each recipe, keyed by recipe id.
+ * Same reasoning as `cooked`: it is a fact about you, not the recipe.
+ * Each entry is `{ value: 0–5, date: ISO | null }` and the dish's score
+ * is the running average of all of them.
+ */
+function normaliseRatings(raw, recipes) {
+  if (!raw || typeof raw !== 'object') return {};
+  const ids = new Set(recipes.map((r) => r.id));
+  const out = {};
+  for (const [id, list] of Object.entries(raw)) {
+    if (!ids.has(id) || !Array.isArray(list)) continue;
+    const clean = list
+      .map((e) => (typeof e === 'number' ? { value: e, date: null } : e))
+      .filter((e) => e && typeof e.value === 'number' && Number.isFinite(e.value))
+      .map((e) => ({
+        value: clamp(Math.round(e.value), 0, 5),
+        date: typeof e.date === 'string' ? e.date : null
+      }));
+    if (clean.length) out[id] = clean;
+  }
+  return out;
+}
+
 /** Content equality, ignoring the id, so a re-import is recognised. */
 function sameRecipe(a, b) {
   const shape = (r) => JSON.stringify([
     r.title, r.groupId, r.difficulty, r.time, r.servings, r.notes,
-    r.ingredients.map((i) => [i.qty, i.name]), r.steps, !!r.photo
+    r.ingredients.map((i) => [i.qty, i.name]), r.steps, r.photos.length
   ]);
   return shape(a) === shape(b);
 }
@@ -223,6 +284,16 @@ class Store extends EventTarget {
   /** ISO timestamp of the last time this recipe was cooked, or null. */
   cookedAt(id) { return this.data.cooked?.[id] || null; }
 
+  /** Every rating this dish has received, oldest first. */
+  ratingsFor(id) { return this.data.ratings?.[id] || []; }
+
+  /** Running average of the ratings, or null when never rated. */
+  ratingAvg(id) {
+    const list = this.ratingsFor(id);
+    if (list.length === 0) return null;
+    return list.reduce((sum, e) => sum + e.value, 0) / list.length;
+  }
+
   search(query, groupId = null) {
     const q = query.trim().toLowerCase();
     let pool = groupId ? this.recipesIn(groupId) : this.data.recipes;
@@ -270,7 +341,9 @@ class Store extends EventTarget {
   removeRecipe(id) {
     const cooked = { ...this.data.cooked };
     delete cooked[id];
-    this.#commit({ ...this.data, recipes: this.data.recipes.filter((r) => r.id !== id), cooked });
+    const ratings = { ...this.data.ratings };
+    delete ratings[id];
+    this.#commit({ ...this.data, recipes: this.data.recipes.filter((r) => r.id !== id), cooked, ratings });
   }
 
   /** Mark a recipe as cooked (now) or clear the mark. */
@@ -287,8 +360,44 @@ class Store extends EventTarget {
     return next;
   }
 
-  setPhoto(id, photo) {
-    this.#commit({ ...this.data, recipes: this.data.recipes.map((r) => (r.id === id ? { ...r, photo } : r)) });
+  /** Add a note from 0 to 5 for this cooking; returns the new average. */
+  addRating(id, value) {
+    const entry = { value: clamp(Math.round(Number(value) || 0), 0, 5), date: new Date().toISOString() };
+    const ratings = { ...this.data.ratings, [id]: [...this.ratingsFor(id), entry] };
+    this.#commit({ ...this.data, ratings });
+    return this.ratingAvg(id);
+  }
+
+  /** Stamp today's date on the new photo; the first one becomes the cover. */
+  addPhoto(id, url) {
+    const photo = { id: uid(), url, date: new Date().toISOString() };
+    this.#patchRecipe(id, (r) => ({
+      ...r,
+      photos: [...r.photos, photo],
+      favePhoto: r.photos.length === 0 ? photo.id : r.favePhoto
+    }));
+    return photo;
+  }
+
+  removePhoto(id, photoId) {
+    this.#patchRecipe(id, (r) => {
+      const photos = r.photos.filter((p) => p.id !== photoId);
+      return {
+        ...r,
+        photos,
+        favePhoto: r.favePhoto === photoId ? (photos[0]?.id ?? null) : r.favePhoto
+      };
+    });
+  }
+
+  /** Choose which album photo fronts the banner and the tiles. */
+  setFavePhoto(id, photoId) {
+    this.#patchRecipe(id, (r) =>
+      (r.photos.some((p) => p.id === photoId) ? { ...r, favePhoto: photoId } : r));
+  }
+
+  #patchRecipe(id, fn) {
+    this.#commit({ ...this.data, recipes: this.data.recipes.map((r) => (r.id === id ? fn(r) : r)) });
   }
 
   replaceAll(raw) {
@@ -332,6 +441,7 @@ class Store extends EventTarget {
     const recipes = this.data.recipes.slice();
     const byId = new Map(recipes.map((r) => [r.id, r]));
     const cooked = { ...this.data.cooked };
+    const ratings = { ...this.data.ratings };
     let recipesAdded = 0;
     let skipped = 0;
 
@@ -341,11 +451,13 @@ class Store extends EventTarget {
         groupId: recipe.groupId ? (groupIdMap.get(recipe.groupId) ?? null) : null
       };
       const wasCooked = incoming.cooked[recipe.id];
+      const wasRated = incoming.ratings[recipe.id];
       const existing = byId.get(mapped.id);
       if (existing) {
         if (sameRecipe(existing, mapped)) {
-          // A re-import of the same recipe still brings its cooked mark over.
+          // A re-import of the same recipe still brings its marks over.
           if (wasCooked && !cooked[mapped.id]) cooked[mapped.id] = wasCooked;
+          if (wasRated && !ratings[mapped.id]) ratings[mapped.id] = wasRated;
           skipped++;
           continue;
         }
@@ -354,10 +466,11 @@ class Store extends EventTarget {
       recipes.push(mapped);
       byId.set(mapped.id, mapped);
       if (wasCooked) cooked[mapped.id] = wasCooked;
+      if (wasRated) ratings[mapped.id] = wasRated;
       recipesAdded++;
     }
 
-    this.#commit({ version: 2, groups, recipes, cooked });
+    this.#commit({ version: 3, groups, recipes, cooked, ratings });
     return { groups: groupsAdded, recipes: recipesAdded, skipped };
   }
 

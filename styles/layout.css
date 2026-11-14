@@ -150,6 +150,7 @@ html[data-layout="web"] .masthead__mark { display: none; }
 }
 [data-layout="web"] .hero__bar { top: 16px; }
 [data-layout="web"] .hero__photo { bottom: 16px; }
+[data-layout="web"] .hero__album { bottom: 16px; }
 [data-layout="web"] .sheetTop {
   margin-top: 0;
   border-radius: 0;

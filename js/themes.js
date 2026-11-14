@@ -68,6 +68,18 @@ const BASE_COPY = {
   stepPlaceholder: 'Describe this step',
   addPhoto: '+ Add photo',
   changePhoto: 'Change photo',
+  albumTitle: 'Photo album',
+  photoCount: (n) => (n === 1 ? '1 photo' : `${n} photos`),
+  photoAdded: 'Photo added to the album.',
+  coverBadge: 'Cover',
+  makeCover: 'Use as cover',
+  deletePhotoConfirm: 'Remove this photo from the album?',
+  rate: 'Rate',
+  rateTitle: 'How was it this time?',
+  rateHint: 'Rate it every time you cook it — the dish keeps the average.',
+  notRated: 'No rating yet',
+  ratingCount: (n) => (n === 1 ? '1 rating' : `${n} ratings`),
+  ratingSaved: (avg) => `Saved — average so far ${avg} ★`,
   settings: 'Settings'
 };
 
@@ -229,6 +241,9 @@ export const THEMES = {
       notesPlaceholder: 'Tips, swaps, memories...',
       addPhoto: '+ add photo',
       changePhoto: 'change photo',
+      rate: '★ Rate',
+      rateTitle: '★ Rate this run!',
+      notRated: 'Not rated yet...',
       stats: { time: 'MIN', servings: 'SRV', difficulty: 'LV' }
     }
   }

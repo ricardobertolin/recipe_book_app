@@ -227,9 +227,13 @@
 
 /* Recipe page. */
 [data-theme="pixel"] .hero { height: 220px; box-shadow: inset 0 0 0 3px #3d2a1c; }
-[data-theme="pixel"] .hero__photo {
+[data-theme="pixel"] .hero__photo,
+[data-theme="pixel"] .hero__album {
   border-radius: 0; background: #f5e6c4; box-shadow: 0 0 0 2px #3d2a1c; font-size: 13px;
 }
+[data-theme="pixel"] .albumph, [data-theme="pixel"] .albumph--add { border-radius: 0; }
+[data-theme="pixel"] .albumph[data-cover="true"] { outline-color: #3d2a1c; }
+[data-theme="pixel"] .ratebtn { border-radius: 0; border: 0; box-shadow: 0 0 0 2px #3d2a1c; }
 [data-theme="pixel"] .sheetTop { margin-top: 0; border-radius: 0; padding-top: 18px; gap: 18px; }
 [data-theme="pixel"] .recipe__head { gap: 8px; }
 [data-theme="pixel"] .recipe__kicker {

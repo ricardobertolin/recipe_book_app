@@ -1,9 +1,11 @@
-/** The bottom sheets: Settings, "new group", and the two transfer sheets. */
+/** The bottom sheets: Settings, "new group", the two transfer sheets,
+ *  the photo album and the rating sheet. */
 
 import { h } from '../dom.js';
+import { CONFIG } from '../config.js';
 import { THEMES, THEME_IDS, numeral } from '../themes.js';
-import { download } from '../util.js';
-import { toastHost } from './common.js';
+import { download, readImageFile, shortDate } from '../util.js';
+import { toastHost, photoPicker, starRow, avgLabel } from './common.js';
 import {
   toJSON, parseJSON, bookToMarkdown, recipeToMarkdown,
   bookFilename, recipeFilename, copyText, canShare, shareText
@@ -270,6 +272,113 @@ export function recipeTransferSheet(ctx, close, recipe) {
 
   sheet.append(row);
   sheet.append(h('p', { class: 'opt__hint', text: 'The JSON file imports back into any Recipe Book, photo and all.' }));
+  return sheet;
+}
+
+/* ── Photo album ──────────────────────────────────────────────── */
+
+/** Every photo of the dish, each stamped with the day it was added.
+ *  One of them is the cover — the one on the banner and the tiles. */
+export function albumSheet(ctx, close, recipeId) {
+  const { store, copy } = ctx;
+  const sheet = h('div', { class: 'sheet', role: 'dialog', 'aria-modal': 'true', 'aria-label': copy.albumTitle });
+  const grid = h('div', { class: 'album' });
+
+  const paint = () => {
+    const recipe = store.recipe(recipeId);
+    if (!recipe) { close(); return; }
+    grid.replaceChildren();
+
+    for (const photo of recipe.photos) {
+      const isCover = photo.id === recipe.favePhoto;
+      grid.append(h('div', { class: 'albumph', dataset: { cover: isCover ? 'true' : 'false' } },
+        h('img', { class: 'albumph__img', src: photo.url, alt: recipe.title, loading: 'lazy' }),
+        photo.date ? h('span', { class: 'albumph__date', text: shortDate(photo.date) }) : null,
+        isCover
+          ? h('span', { class: 'albumph__cover', text: `★ ${copy.coverBadge}` })
+          : h('button', {
+            class: 'albumph__make', type: 'button',
+            onclick: () => { store.setFavePhoto(recipeId, photo.id); paint(); }
+          }, copy.makeCover),
+        h('button', {
+          class: 'albumph__del', type: 'button', 'aria-label': 'Delete photo',
+          onclick: () => {
+            if (!window.confirm(copy.deletePhotoConfirm)) return;
+            store.removePhoto(recipeId, photo.id);
+            paint();
+          }
+        }, '×')));
+    }
+
+    grid.append(photoPicker({
+      className: 'albumph albumph--add',
+      label: copy.addPhoto,
+      onPick: async (file) => {
+        try {
+          const url = await readImageFile(file, CONFIG.maxPhotoEdge, CONFIG.photoQuality);
+          store.addPhoto(recipeId, url);
+          paint();
+        } catch (err) {
+          toastHost(err.message || 'Could not read that image.');
+        }
+      }
+    }));
+  };
+  paint();
+
+  sheet.append(
+    h('div', { class: 'sheet__grab', 'aria-hidden': 'true' }),
+    h('div', { class: 'row-between' },
+      h('h2', { class: 'sheet__title', text: copy.albumTitle }),
+      h('button', { class: 'btn btn--soft', type: 'button', onclick: close }, 'Done')),
+    h('p', { class: 'opt__hint', text: store.recipe(recipeId)?.title || '' }),
+    grid);
+
+  return sheet;
+}
+
+/* ── Rating ───────────────────────────────────────────────────── */
+
+/** A 0–5 note for this cooking. The dish keeps every note and shows the
+ *  running average. */
+export function ratingSheet(ctx, close, recipeId) {
+  const { store, copy } = ctx;
+  const recipe = store.recipe(recipeId);
+  if (!recipe) { close(); return h('div'); }
+
+  const sheet = h('div', { class: 'sheet', role: 'dialog', 'aria-modal': 'true', 'aria-label': copy.rateTitle });
+  const avg = store.ratingAvg(recipeId);
+
+  const btns = h('div', { class: 'ratebtns' });
+  for (let n = 0; n <= 5; n++) {
+    btns.append(h('button', {
+      class: 'ratebtn', type: 'button', 'aria-label': `${n} of 5`,
+      onclick: () => {
+        const next = store.addRating(recipeId, n);
+        close();
+        toastHost(copy.ratingSaved(avgLabel(next)));
+      }
+    },
+      h('b', { text: String(n) }),
+      h('span', { class: 'ratebtn__stars', text: n === 0 ? '–' : '★'.repeat(n) })));
+  }
+
+  sheet.append(
+    h('div', { class: 'sheet__grab', 'aria-hidden': 'true' }),
+    h('h2', { class: 'sheet__title', text: copy.rateTitle }),
+    h('p', { class: 'opt__hint', text: recipe.title }),
+    avg === null
+      ? null
+      : h('div', { class: 'raterow__score' },
+        starRow(avg),
+        h('span', {
+          class: 'raterow__label',
+          text: `${avgLabel(avg)} · ${copy.ratingCount(store.ratingsFor(recipeId).length)}`
+        })),
+    btns,
+    h('p', { class: 'opt__hint', text: copy.rateHint }),
+    h('button', { class: 'btn btn--ghost', type: 'button', onclick: close }, copy.cancel));
+
   return sheet;
 }
 

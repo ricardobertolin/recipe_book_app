@@ -65,12 +65,14 @@ export function renderCook(ctx) {
   return page;
 }
 
-/** The last step is the end of the job: record that the dish was made and
- *  go back to the book, rather than dropping the cook back on the steps. */
+/** The last step is the end of the job: record that the dish was made, go
+ *  back to the book, and ask for this cooking's 0–5 note while the meal is
+ *  still on the counter. */
 function finish(ctx, recipe) {
   ctx.nav.home();
   ctx.store.setCooked(recipe.id, true);
   toastHost(ctx.copy.cookedToast);
+  ctx.openRating(recipe.id);
 }
 
 async function requestWakeLock() {

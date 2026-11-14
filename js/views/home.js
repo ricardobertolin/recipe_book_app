@@ -11,6 +11,7 @@
 
 import { h } from '../dom.js';
 import { groupColor, mediaBackground, numeral } from '../themes.js';
+import { coverUrl } from '../store.js';
 import { debounce } from '../util.js';
 import { iconEl, recipeCard, sectionHead, emptyState } from './common.js';
 
@@ -141,7 +142,7 @@ function groupChip(ctx, group, current, index = 0) {
   const thumbs = h('span', { class: 'group__thumbs', 'aria-hidden': 'true' },
     recipes.slice(0, 3).map((r) => h('span', {
       class: 'group__thumb',
-      style: { '--thumb': mediaBackground(theme, r.photo, color) }
+      style: { '--thumb': mediaBackground(theme, coverUrl(r), color) }
     })));
 
   return h('button', {

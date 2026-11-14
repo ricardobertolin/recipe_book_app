@@ -8,7 +8,8 @@
 import { h } from '../dom.js';
 import { CONFIG } from '../config.js';
 import { groupColor, mediaBackground } from '../themes.js';
-import { readImageFile } from '../util.js';
+import { coverUrl } from '../store.js';
+import { readImageFile, uid } from '../util.js';
 import { photoPicker, difficultyDots, toastHost } from './common.js';
 
 export function renderEdit(ctx) {
@@ -58,14 +59,17 @@ export function renderEdit(ctx) {
 
   form.id = 'recipe-form';
 
-  // Photo
+  // Photo — picking here adds to the album and makes the new one the cover.
   const drop = photoPicker({
     className: 'photodrop',
-    label: draft.photo ? copy.changePhoto : copy.addPhoto,
+    label: draft.photos.length ? copy.changePhoto : copy.addPhoto,
     style: { '--media': draftMedia(ctx, draft) },
     onPick: async (file) => {
       try {
-        draft.photo = await readImageFile(file, CONFIG.maxPhotoEdge, CONFIG.photoQuality);
+        const url = await readImageFile(file, CONFIG.maxPhotoEdge, CONFIG.photoQuality);
+        const photo = { id: uid(), url, date: new Date().toISOString() };
+        draft.photos = [...draft.photos, photo];
+        draft.favePhoto = photo.id;
         drop.style.setProperty('--media', draftMedia(ctx, draft));
         drop.querySelector('span').textContent = copy.changePhoto;
       } catch (err) {
@@ -231,7 +235,7 @@ function numberField(label, id, value, placeholder, onInput) {
 
 function draftMedia(ctx, draft) {
   const group = draft.groupId ? ctx.store.group(draft.groupId) : null;
-  return mediaBackground(ctx.theme, draft.photo, groupColor(ctx.theme, group));
+  return mediaBackground(ctx.theme, coverUrl(draft), groupColor(ctx.theme, group));
 }
 
 /** A blank recipe, pre-filed into whichever group the user came from. */
@@ -243,7 +247,8 @@ export function blankDraft(groupId) {
     difficulty: 0,
     time: '',
     servings: '',
-    photo: null,
+    photos: [],
+    favePhoto: null,
     ingredients: [{ qty: '', name: '' }],
     steps: [''],
     notes: ''

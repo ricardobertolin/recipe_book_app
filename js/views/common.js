@@ -3,16 +3,29 @@
 import { h, svg } from '../dom.js';
 import { icon } from '../icons.js';
 import { groupColor, mediaBackground } from '../themes.js';
+import { coverUrl } from '../store.js';
 import { shortDate } from '../util.js';
 
 export const iconEl = (name, theme) => svg(icon(name, theme));
 
-/** Inline style bag that paints a recipe tile: photo, or the theme's swatch. */
+/** Inline style bag that paints a recipe tile: cover photo, or the theme's
+ *  swatch. */
 export function mediaVars(ctx, recipe) {
   const group = recipe.groupId ? ctx.store.group(recipe.groupId) : null;
   const color = groupColor(ctx.theme, group);
-  return { '--media': mediaBackground(ctx.theme, recipe.photo, color), '--group-color': color };
+  return { '--media': mediaBackground(ctx.theme, coverUrl(recipe), color), '--group-color': color };
 }
+
+/** "★★★★☆" for an average; the unfilled stars are painted by CSS. */
+export function starRow(avg) {
+  const filled = Math.round(avg);
+  return h('span', { class: 'stars', 'aria-hidden': 'true' },
+    h('span', { class: 'stars__on', text: '★'.repeat(filled) }),
+    h('span', { class: 'stars__off', text: '★'.repeat(5 - filled) }));
+}
+
+/** One-decimal label for an average, dropping the trailing .0. */
+export const avgLabel = (avg) => String(Math.round(avg * 10) / 10);
 
 export function difficultyDots(ctx, difficulty) {
   return h('span', { class: 'dots', 'aria-hidden': 'true' },
@@ -23,11 +36,14 @@ export function metaLine(ctx, recipe) {
   const { copy } = ctx;
   const time = recipe.time ? `${recipe.time} min` : '– min';
   const diff = copy.diff[recipe.difficulty];
+  const avg = ctx.store.ratingAvg(recipe.id);
   return h('span', { class: 'rcard__meta' },
     h('span', { text: time }),
     h('span', { class: 'rcard__sep', 'aria-hidden': 'true' }),
     h('span', { text: diff }),
-    difficultyDots(ctx, recipe.difficulty));
+    difficultyDots(ctx, recipe.difficulty),
+    avg === null ? null : h('span', { class: 'rcard__sep', 'aria-hidden': 'true' }),
+    avg === null ? null : h('span', { class: 'rcard__rating', text: `★ ${avgLabel(avg)}` }));
 }
 
 /** One recipe in a list. Emits every decorative variant the themes need

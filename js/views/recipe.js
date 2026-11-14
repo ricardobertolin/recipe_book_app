@@ -5,8 +5,9 @@
 import { h } from '../dom.js';
 import { CONFIG } from '../config.js';
 import { groupColor } from '../themes.js';
+import { coverPhoto } from '../store.js';
 import { readImageFile, shortDate } from '../util.js';
-import { iconEl, mediaVars, photoPicker, difficultyDots, toastHost } from './common.js';
+import { iconEl, mediaVars, photoPicker, difficultyDots, toastHost, starRow, avgLabel } from './common.js';
 
 export function renderRecipe(ctx) {
   const { store, theme, copy, state } = ctx;
@@ -19,7 +20,9 @@ export function renderRecipe(ctx) {
   page.append(hero(ctx, recipe));
   page.append(h('div', { class: 'sheetTop' },
     head(ctx, recipe, group),
-    cookedToggle(ctx, recipe),
+    h('div', { class: 'marks' },
+      cookedToggle(ctx, recipe),
+      ratingRow(ctx, recipe)),
     stats(ctx, recipe),
     panels(ctx, recipe)));
 
@@ -34,6 +37,7 @@ function missing(ctx) {
 
 function hero(ctx, recipe) {
   const { theme, copy } = ctx;
+  const cover = coverPhoto(recipe);
   return h('div', { class: 'hero' },
     h('div', { class: 'hero__bar' },
       h('button', {
@@ -48,17 +52,29 @@ function hero(ctx, recipe) {
         h('button', {
           class: 'btn', type: 'button', onclick: () => ctx.nav.edit(recipe.id)
         }, iconEl('edit', theme.id), copy.edit))),
+    cover
+      ? h('button', {
+        class: 'hero__album', type: 'button',
+        'aria-label': copy.albumTitle, title: copy.albumTitle,
+        onclick: () => ctx.openAlbum(recipe.id)
+      },
+        cover.date ? h('span', { class: 'hero__stamp', text: shortDate(cover.date) }) : null,
+        h('span', { text: copy.photoCount(recipe.photos.length) }))
+      : null,
     photoPicker({
       className: 'hero__photo',
-      label: recipe.photo ? copy.changePhoto : copy.addPhoto,
+      label: copy.addPhoto,
       onPick: (file) => pickPhoto(ctx, recipe.id, file)
     }));
 }
 
+/** New photos always join the album; the first one doubles as the cover. */
 async function pickPhoto(ctx, id, file) {
   try {
     const url = await readImageFile(file, CONFIG.maxPhotoEdge, CONFIG.photoQuality);
-    ctx.store.setPhoto(id, url);
+    const had = ctx.store.recipe(id).photos.length;
+    ctx.store.addPhoto(id, url);
+    if (had > 0) toastHost(ctx.copy.photoAdded);
   } catch (err) {
     toastHost(err.message || 'Could not read that image.');
   }
@@ -83,6 +99,27 @@ function cookedToggle(ctx, recipe) {
   },
     h('span', { class: 'cooked__box', 'aria-hidden': 'true', text: when ? '✓' : '' }),
     h('span', { class: 'cooked__label', text: when ? copy.cookedOn(shortDate(when)) : copy.markCooked }));
+}
+
+/** The dish's running score. Every cooking adds a 0–5 note; this shows the
+ *  average so far and opens the rating sheet to add another. */
+function ratingRow(ctx, recipe) {
+  const { store, copy } = ctx;
+  const avg = store.ratingAvg(recipe.id);
+  const count = store.ratingsFor(recipe.id).length;
+  return h('div', { class: 'raterow' },
+    avg === null
+      ? h('span', { class: 'raterow__label', text: copy.notRated })
+      : h('span', { class: 'raterow__score' },
+        starRow(avg),
+        h('span', {
+          class: 'raterow__label',
+          text: `${avgLabel(avg)} · ${copy.ratingCount(count)}`
+        })),
+    h('button', {
+      class: 'btn btn--soft raterow__btn', type: 'button',
+      onclick: () => ctx.openRating(recipe.id)
+    }, copy.rate));
 }
 
 function stats(ctx, recipe) {
