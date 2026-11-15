@@ -359,19 +359,31 @@ html .cards--scoped .rcard__kicker { display: none; }
 }
 .cooked[aria-pressed="true"] .cooked__box { border-color: var(--good); background: var(--good); }
 
-/* Cooked toggle and rating side by side, wrapping on narrow screens. */
-.marks { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+/* Cooked toggle on its own line, the score row on the next. */
+.marks { display: flex; flex-direction: column; gap: 10px; align-items: stretch; }
 
 /* ── Rating ──────────────────────────────────────────────────── */
 .stars { display: inline-flex; font-size: 16px; line-height: 1; letter-spacing: 2px; }
 .stars__on { color: var(--star, #f2a93b); }
 .stars__off { color: var(--line-strong); }
 
-.raterow { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; justify-content: flex-end; }
-.raterow__score { display: inline-flex; align-items: center; gap: 8px; }
+.raterow {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--surface-2); border-radius: var(--r-md);
+  box-shadow: var(--shadow-card);
+  padding: 8px 10px 8px 14px;
+}
+.raterow__open {
+  flex: 1; min-width: 0;
+  display: flex; align-items: center; gap: 8px;
+  border: 0; background: none; color: inherit;
+  padding: 6px 0; text-align: left;
+}
+.raterow__open:hover .raterow__label { color: var(--ink); }
+.raterow__score { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
 .raterow__label {
   font-family: var(--f-ui); font-weight: 700; font-size: 13px; color: var(--ink-2);
-  white-space: nowrap;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
 .ratebtns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
@@ -385,6 +397,29 @@ html .cards--scoped .rcard__kicker { display: none; }
 .ratebtn:active { transform: scale(.96); }
 .ratebtn b { font-family: var(--f-display); font-weight: var(--display-weight); font-size: 19px; }
 .ratebtn__stars { color: var(--star, #f2a93b); font-size: 12px; letter-spacing: 1px; line-height: 1; }
+
+/* Score history: one line per rating, newest on top. */
+.ratehist {
+  display: flex; flex-direction: column; gap: 8px;
+  max-height: 45vh; overflow-y: auto;
+}
+.ratehist__item {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--surface-2); border-radius: var(--r-sm);
+  padding: 8px 8px 8px 14px;
+}
+.ratehist__value { font-family: var(--f-display); font-weight: var(--display-weight); font-size: 16px; }
+.ratehist__date {
+  margin-left: auto;
+  font-family: var(--f-ui); font-weight: 700; font-size: 13px; color: var(--ink-2);
+  white-space: nowrap;
+}
+.ratehist__del {
+  width: 32px; height: 32px; flex: none; border: 0; border-radius: 50%;
+  background: transparent; color: var(--ink-2);
+  font-size: 18px; line-height: 1; display: grid; place-items: center;
+}
+.ratehist__del:hover { background: var(--surface-3); color: var(--ink); }
 
 .rcard__rating { color: var(--star, #f2a93b); white-space: nowrap; }
 
@@ -730,10 +765,11 @@ html .cards--scoped .rcard__kicker { display: none; }
 
   .recipe__title { font-size: 24pt !important; }
   .stats { break-inside: avoid; }
-  .stat, .step, .ings, .notes {
+  .stat, .step, .ings, .notes, .raterow {
     background: none !important; box-shadow: none !important;
     border: 0 !important; transform: none !important;
   }
+  .raterow { padding: 0 !important; }
   .stat { border-bottom: 1px solid #ccc !important; }
   .step { break-inside: avoid; border-bottom: 1px solid #eee !important; padding: 2mm 0 !important; }
   .ing { break-inside: avoid; }

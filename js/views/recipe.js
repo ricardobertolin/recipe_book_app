@@ -102,20 +102,26 @@ function cookedToggle(ctx, recipe) {
 }
 
 /** The dish's running score. Every cooking adds a 0–5 note; this shows the
- *  average so far and opens the rating sheet to add another. */
+ *  average so far. Tapping the score opens the history of every note,
+ *  the Rate button adds another. */
 function ratingRow(ctx, recipe) {
   const { store, copy } = ctx;
   const avg = store.ratingAvg(recipe.id);
   const count = store.ratingsFor(recipe.id).length;
   return h('div', { class: 'raterow' },
-    avg === null
-      ? h('span', { class: 'raterow__label', text: copy.notRated })
-      : h('span', { class: 'raterow__score' },
-        starRow(avg),
-        h('span', {
-          class: 'raterow__label',
-          text: `${avgLabel(avg)} · ${copy.ratingCount(count)}`
-        })),
+    h('button', {
+      class: 'raterow__open', type: 'button',
+      'aria-label': copy.scoreHistoryTitle, title: copy.scoreHistoryTitle,
+      onclick: () => ctx.openRatingHistory(recipe.id)
+    },
+      avg === null
+        ? h('span', { class: 'raterow__label', text: copy.notRated })
+        : h('span', { class: 'raterow__score' },
+          starRow(avg),
+          h('span', {
+            class: 'raterow__label',
+            text: `${avgLabel(avg)} · ${copy.ratingCount(count)}`
+          }))),
     h('button', {
       class: 'btn btn--soft raterow__btn', type: 'button',
       onclick: () => ctx.openRating(recipe.id)

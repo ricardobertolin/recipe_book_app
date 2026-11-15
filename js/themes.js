@@ -80,6 +80,10 @@ const BASE_COPY = {
   notRated: 'No rating yet',
   ratingCount: (n) => (n === 1 ? '1 rating' : `${n} ratings`),
   ratingSaved: (avg) => `Saved — average so far ${avg} ★`,
+  scoreHistoryTitle: 'Score history',
+  scoreHistoryEmpty: 'No ratings yet. Rate it after the next cooking.',
+  deleteRating: 'Remove rating',
+  deleteRatingConfirm: 'Remove this rating from the history?',
   settings: 'Settings'
 };
 
@@ -244,6 +248,8 @@ export const THEMES = {
       rate: '★ Rate',
       rateTitle: '★ Rate this run!',
       notRated: 'Not rated yet...',
+      scoreHistoryTitle: '★ Score history',
+      scoreHistoryEmpty: 'Not rated yet...',
       stats: { time: 'MIN', servings: 'SRV', difficulty: 'LV' }
     }
   }

@@ -15,7 +15,7 @@ import { renderHome, paintList } from './views/home.js';
 import { renderRecipe } from './views/recipe.js';
 import { renderCook, releaseWakeLock } from './views/cook.js';
 import { renderEdit, blankDraft } from './views/edit.js';
-import { settingsSheet, groupSheet, transferSheet, recipeTransferSheet, albumSheet, ratingSheet } from './views/sheets.js';
+import { settingsSheet, groupSheet, transferSheet, recipeTransferSheet, albumSheet, ratingSheet, ratingHistorySheet } from './views/sheets.js';
 
 /* ── Transient state (never persisted) ───────────────────────── */
 
@@ -62,6 +62,7 @@ const ctx = {
   openRecipeTransfer: (recipe) => openSheet((c, close) => recipeTransferSheet(c, close, recipe)),
   openAlbum: (recipeId) => openSheet((c, close) => albumSheet(c, close, recipeId)),
   openRating: (recipeId) => openSheet((c, close) => ratingSheet(c, close, recipeId)),
+  openRatingHistory: (recipeId) => openSheet((c, close) => ratingHistorySheet(c, close, recipeId)),
   settingValue: (key) => (key === 'theme' ? currentThemeId() : currentLayoutPref()),
   setTheme: (id) => { delete OVERRIDE.theme; store.saveSettings({ theme: id }); },
   setLayout: (id) => { delete OVERRIDE.layout; store.saveSettings({ layout: id }); },

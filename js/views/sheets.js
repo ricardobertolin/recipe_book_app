@@ -382,6 +382,74 @@ export function ratingSheet(ctx, close, recipeId) {
   return sheet;
 }
 
+/* ── Score history ────────────────────────────────────────────── */
+
+/** Every note the dish has received, newest first. Each one can be
+ *  removed, so a fat-fingered rating is not forever. */
+export function ratingHistorySheet(ctx, close, recipeId) {
+  const { store, copy } = ctx;
+  const recipe = store.recipe(recipeId);
+  if (!recipe) { close(); return h('div'); }
+
+  const sheet = h('div', { class: 'sheet', role: 'dialog', 'aria-modal': 'true', 'aria-label': copy.scoreHistoryTitle });
+  const summary = h('div', { class: 'raterow__score' });
+  const list = h('div', { class: 'ratehist' });
+
+  const paint = () => {
+    const entries = store.ratingsFor(recipeId);
+    const avg = store.ratingAvg(recipeId);
+
+    summary.replaceChildren();
+    if (avg === null) {
+      summary.append(h('span', { class: 'raterow__label', text: copy.notRated }));
+    } else {
+      summary.append(
+        starRow(avg),
+        h('span', {
+          class: 'raterow__label',
+          text: `${avgLabel(avg)} · ${copy.ratingCount(entries.length)}`
+        }));
+    }
+
+    list.replaceChildren();
+    if (entries.length === 0) {
+      list.append(h('p', { class: 'empty__text', text: copy.scoreHistoryEmpty }));
+      return;
+    }
+    for (let i = entries.length - 1; i >= 0; i--) {
+      const entry = entries[i];
+      list.append(h('div', { class: 'ratehist__item' },
+        starRow(entry.value),
+        h('b', { class: 'ratehist__value', text: String(entry.value) }),
+        h('span', { class: 'ratehist__date', text: entry.date ? shortDate(entry.date) : '—' }),
+        h('button', {
+          class: 'ratehist__del', type: 'button', 'aria-label': copy.deleteRating, title: copy.deleteRating,
+          onclick: () => {
+            if (!window.confirm(copy.deleteRatingConfirm)) return;
+            store.removeRating(recipeId, i);
+            paint();
+          }
+        }, '×')));
+    }
+  };
+  paint();
+
+  sheet.append(
+    h('div', { class: 'sheet__grab', 'aria-hidden': 'true' }),
+    h('div', { class: 'row-between' },
+      h('h2', { class: 'sheet__title', text: copy.scoreHistoryTitle }),
+      h('button', { class: 'btn btn--soft', type: 'button', onclick: close }, 'Done')),
+    h('p', { class: 'opt__hint', text: recipe.title }),
+    summary,
+    list,
+    h('button', {
+      class: 'btn btn--primary btn--block', type: 'button',
+      onclick: () => { close(); ctx.openRating(recipeId); }
+    }, copy.rate));
+
+  return sheet;
+}
+
 /* ── New group ────────────────────────────────────────────────── */
 
 export function groupSheet(ctx, close) {

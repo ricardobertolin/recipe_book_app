@@ -368,6 +368,16 @@ class Store extends EventTarget {
     return this.ratingAvg(id);
   }
 
+  /** Drop one rating by its position in `ratingsFor` (oldest first). */
+  removeRating(id, index) {
+    const list = this.ratingsFor(id).filter((_, i) => i !== index);
+    const ratings = { ...this.data.ratings };
+    if (list.length) ratings[id] = list;
+    else delete ratings[id];
+    this.#commit({ ...this.data, ratings });
+    return this.ratingAvg(id);
+  }
+
   /** Stamp today's date on the new photo; the first one becomes the cover. */
   addPhoto(id, url) {
     const photo = { id: uid(), url, date: new Date().toISOString() };
